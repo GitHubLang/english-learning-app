@@ -813,7 +813,7 @@ function parseWordJson(jsonStr) {
             
             // 更新右上角剩余数量
             if (quizMode === 'wrong') {
-                updateWordCount(quizWrongWords.length);
+                updateWordCount(quizWrongWordCount);
             } else {
                 updateWordCount(quizMinCountWordCount);
             }
