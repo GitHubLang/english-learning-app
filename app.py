@@ -564,7 +564,33 @@ def get_quiz_words(textbook_id):
     db = get_db()
     cursor = db.cursor(dictionary=True)
     
-    # 查询一条单词（学过的，按背诵次数升序）
+    # 先计算背诵次数最小的单词数量（稳定值）
+    cursor.execute("""
+        SELECT MIN(COALESCE(wqr.quiz_count, 0)) as min_count
+        FROM words w
+        LEFT JOIN word_play_records wpr ON w.id = wpr.word_id 
+            AND wpr.user_id = %s
+        LEFT JOIN word_quiz_records wqr ON w.id = wqr.word_id 
+            AND wqr.user_id = %s AND wqr.textbook_id = %s
+        WHERE w.textbook_id = %s AND COALESCE(wpr.play_count, 0) > 0
+    """, (g.user_id, g.user_id, textbook_id, textbook_id))
+    min_count_row = cursor.fetchone()
+    min_quiz_count = min_count_row['min_count'] if min_count_row and min_count_row['min_count'] else 0
+    
+    # 计算背诵次数最小的单词数量
+    cursor.execute("""
+        SELECT COUNT(*) as cnt
+        FROM words w
+        LEFT JOIN word_play_records wpr ON w.id = wpr.word_id 
+            AND wpr.user_id = %s
+        LEFT JOIN word_quiz_records wqr ON w.id = wqr.word_id 
+            AND wqr.user_id = %s AND wqr.textbook_id = %s
+        WHERE w.textbook_id = %s AND COALESCE(wpr.play_count, 0) > 0
+        AND COALESCE(wqr.quiz_count, 0) = %s
+    """, (g.user_id, g.user_id, textbook_id, textbook_id, min_quiz_count))
+    min_quiz_word_count = cursor.fetchone()['cnt']
+    
+    # 随机获取一条背诵次数最少的单词
     cursor.execute("""
         SELECT w.id, w.textbook_id, w.book_name, w.word, w.word_json,
                COALESCE(wqr.quiz_count, 0) as quiz_count
@@ -574,9 +600,10 @@ def get_quiz_words(textbook_id):
         LEFT JOIN word_quiz_records wqr ON w.id = wqr.word_id 
             AND wqr.user_id = %s AND wqr.textbook_id = %s
         WHERE w.textbook_id = %s AND COALESCE(wpr.play_count, 0) > 0
+        AND COALESCE(wqr.quiz_count, 0) = %s
         ORDER BY RAND()
         LIMIT 1
-    """, (g.user_id, g.user_id, textbook_id, textbook_id))
+    """, (g.user_id, g.user_id, textbook_id, textbook_id, min_quiz_count))
     
     word_row = cursor.fetchone()
     
@@ -623,18 +650,6 @@ def get_quiz_words(textbook_id):
     random.shuffle(options)
     parsed['options'] = options
     
-    # 计算背诵次数最少的单词数量
-    min_quiz_count = word_row['quiz_count']
-    cursor.execute("""
-        SELECT COUNT(*) as cnt
-        FROM words w
-        LEFT JOIN word_play_records wpr ON w.id = wpr.word_id AND wpr.user_id = %s
-        LEFT JOIN word_quiz_records wqr ON w.id = wqr.word_id AND wqr.user_id = %s AND wqr.textbook_id = %s
-        WHERE w.textbook_id = %s AND COALESCE(wpr.play_count, 0) > 0
-        AND COALESCE(wqr.quiz_count, 0) = %s
-    """, (g.user_id, g.user_id, textbook_id, textbook_id, min_quiz_count))
-    min_quiz_word_count = cursor.fetchone()['cnt']
-    
     cursor.close()
     db.close()
     return jsonify({
@@ -646,13 +661,27 @@ def get_quiz_words(textbook_id):
 @app.route('/api/textbooks/<int:textbook_id>/wrong-word', methods=['GET'])
 @token_required
 def get_wrong_word(textbook_id):
-    """获取一条错题复习单词（按差值降序）
+    """获取一条错题复习单词（随机）
     差值 = 答错次数 - 复习答对次数
     """
     db = get_db()
     cursor = db.cursor(dictionary=True)
     
-    # 获取一条差值>0的单词
+    # 先计算错题数量（稳定值）
+    cursor.execute("""
+        SELECT COUNT(*) as cnt
+        FROM words w
+        LEFT JOIN word_wrong_counts wwc ON w.id = wwc.word_id 
+            AND wwc.user_id = %s AND wwc.textbook_id = %s
+        LEFT JOIN word_wrong_review_records wwrc ON w.id = wwrc.word_id 
+            AND wwrc.user_id = %s AND wwrc.textbook_id = %s
+        WHERE w.textbook_id = %s 
+            AND COALESCE(wwc.wrong_count, 0) > 0
+            AND (COALESCE(wwc.wrong_count, 0) - COALESCE(wwrc.correct_count, 0)) > 0
+    """, (g.user_id, textbook_id, g.user_id, textbook_id, textbook_id))
+    wrong_word_count = cursor.fetchone()['cnt']
+    
+    # 随机获取一条差值>0的单词
     cursor.execute("""
         SELECT w.id, w.textbook_id, w.book_name, w.word, w.word_json,
                COALESCE(wwc.wrong_count, 0) as wrong_count,
@@ -730,7 +759,6 @@ def get_wrong_word(textbook_id):
             AND COALESCE(wwc.wrong_count, 0) > 0
             AND (COALESCE(wwc.wrong_count, 0) - COALESCE(wwrc.correct_count, 0)) > 0
     """, (g.user_id, textbook_id, g.user_id, textbook_id, textbook_id))
-    wrong_word_count = cursor.fetchone()['cnt']
     
     cursor.close()
     db.close()
