@@ -453,7 +453,7 @@ function parseWordJson(jsonStr) {
             // 如果详情页已打开，右滑关闭，上下左右都不触发其他操作
             const wordDetailModal = document.getElementById('wordDetailModal');
             if (wordDetailModal.classList.contains('show')) {
-                if (deltaX > 100 && Math.abs(deltaX) > Math.abs(deltaY)) {
+                if (deltaX > 60 && Math.abs(deltaX) > Math.abs(deltaY)) {
                     closeWordDetail();
                 }
                 return;
@@ -736,7 +736,7 @@ function parseWordJson(jsonStr) {
             };
             modalContent.ontouchend = function(e) {
                 const deltaX = e.changedTouches[0].clientX - modalTouchStartX;
-                if (deltaX > 100) {
+                if (deltaX > 60) {
                     closeWordDetail();
                 }
             };
