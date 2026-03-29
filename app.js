@@ -721,6 +721,8 @@ function parseWordJson(jsonStr) {
         // 背单词状态
         let quizMinCountWordCount = 0;  // 背诵次数最小的单词数量
         let quizCurrentWord = null;  // 当前背的单词
+        let quizCurrentIndex = 0;  // 当前单词索引
+        let quizWrongWords = [];  // 错题列表
         
         async function loadQuizWords() {
             if (!currentTextbookId) {
@@ -756,47 +758,24 @@ function parseWordJson(jsonStr) {
                 return;
             }
             
-            // 检查缓存
-            const now = Date.now();
-            if (wrongWordsCache.textbookId === currentTextbookId && 
-                wrongWordsCache.data && 
-                (now - wrongWordsCache.timestamp) < WRONG_CACHE_MAX_AGE) {
-                console.log('使用错题缓存');
-                wrongWords = wrongWordsCache.data;
-                quizWords = wrongWords;
-                quizIndex = 0;
-                if (quizWords.length > 0) {
-                    showQuizWord();
-                } else {
-                    document.getElementById('quizWord').textContent = '暂无错题';
-                    document.getElementById('quizOptions').innerHTML = '';
-                }
-                return;
-            }
-            
             try {
                 const res = await fetch(`${API}/textbooks/${currentTextbookId}/wrong-words-with-options`, {
                     headers: {'Authorization': `Bearer ${token}`}
                 });
-                wrongWords = await res.json();
+                const data = await res.json();
+                quizWrongWords = data.words || [];
                 
-                // 更新缓存
-                wrongWordsCache = {
-                    textbookId: currentTextbookId,
-                    data: wrongWords,
-                    timestamp: Date.now()
-                };
-                
-                quizWords = wrongWords;
-                quizIndex = 0;
-                if (quizWords.length > 0) {
+                if (quizWrongWords.length > 0) {
+                    quizCurrentIndex = 0;
+                    quizCurrentWord = quizWrongWords[quizCurrentIndex];
                     showQuizWord();
                 } else {
                     document.getElementById('quizWord').textContent = '暂无错题';
                     document.getElementById('quizOptions').innerHTML = '';
+                    updateWordCount(0);
                 }
             } catch (e) {
-                console.error(e);
+                console.error('加载错题失败:', e);
             }
         }
         
@@ -829,7 +808,11 @@ function parseWordJson(jsonStr) {
             setTimeout(() => speak(word.word || ''), 500);
             
             // 更新右上角剩余数量
-            updateWordCount(quizMinCountWordCount);
+            if (quizMode === 'wrong') {
+                updateWordCount(quizWrongWords.length);
+            } else {
+                updateWordCount(quizMinCountWordCount);
+            }
         }
         
         function playQuizWord() {
@@ -847,22 +830,49 @@ function parseWordJson(jsonStr) {
                 el.classList.add('correct');
                 options.forEach(o => o.style.pointerEvents = 'none');
                 
-                // 背单词模式记录背诵次数
-                try {
-                    await fetch(`${API}/words/${quizCurrentWord.id}/quiz-correct`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({textbook_id: currentTextbookId})
-                    });
-                } catch (e) {}
-                
-                // 答对后延迟加载下一个单词
-                setTimeout(() => {
-                    loadQuizWords();
-                }, 800);
+                if (quizMode === 'wrong') {
+                    // 错题复习模式：记录答对
+                    try {
+                        await fetch(`${API}/words/${quizCurrentWord.id}/wrong-review-correct`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({textbook_id: currentTextbookId})
+                        });
+                    } catch (e) {}
+                    
+                    // 答对后加载下一题
+                    setTimeout(() => {
+                        quizCurrentIndex++;
+                        if (quizCurrentIndex < quizWrongWords.length) {
+                            quizCurrentWord = quizWrongWords[quizCurrentIndex];
+                            showQuizWord();
+                        } else {
+                            document.getElementById('quizWord').textContent = '恭喜！错题已复习完';
+                            document.getElementById('quizOptions').innerHTML = '';
+                            updateWordCount(0);
+                        }
+                    }, 800);
+                } else {
+                    // 普通背单词模式：记录背诵次数
+                    try {
+                        await fetch(`${API}/words/${quizCurrentWord.id}/quiz-correct`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({textbook_id: currentTextbookId})
+                        });
+                    } catch (e) {}
+                    
+                    // 答对后延迟加载下一个单词
+                    setTimeout(() => {
+                        loadQuizWords();
+                    }, 800);
+                }
             } else {
                 // 错误
                 el.classList.add('wrong');

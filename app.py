@@ -493,7 +493,7 @@ def get_wrong_words_with_options(textbook_id):
     
     cursor.close()
     db.close()
-    return jsonify(parsed_words)
+    return jsonify({'words': parsed_words})
 
 @app.route('/api/textbooks/<int:textbook_id>/quiz-words', methods=['GET'])
 @token_required
