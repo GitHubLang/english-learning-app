@@ -723,6 +723,7 @@ function parseWordJson(jsonStr) {
         let quizCurrentWord = null;  // 当前背的单词
         let quizCurrentIndex = 0;  // 当前单词索引
         let quizWrongWords = [];  // 错题列表
+        let quizRecordedWrongOptions = new Set();  // 已记录过的错误选项
         
         async function loadQuizWords() {
             if (!currentTextbookId) {
@@ -785,6 +786,9 @@ function parseWordJson(jsonStr) {
                 document.getElementById('quizOptions').innerHTML = '';
                 return;
             }
+            
+            // 重置错误选项记录
+            quizRecordedWrongOptions.clear();
             
             const quizWord = quizCurrentWord;
             // 如果有word_json，用parseWordJson解析
@@ -877,17 +881,20 @@ function parseWordJson(jsonStr) {
                 // 错误
                 el.classList.add('wrong');
                 
-                // 记录错题
-                try {
-                    await fetch(`${API}/words/${quizCurrentWord.id}/wrong`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({textbook_id: currentTextbookId})
-                    });
-                } catch (e) {}
+                // 只记录一次同一个错误选项
+                if (!quizRecordedWrongOptions.has(text)) {
+                    quizRecordedWrongOptions.add(text);
+                    try {
+                        await fetch(`${API}/words/${quizCurrentWord.id}/wrong`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({textbook_id: currentTextbookId})
+                        });
+                    } catch (e) {}
+                }
                 
                 // 0.5秒后取消红色，允许重新选择
                 setTimeout(() => {
