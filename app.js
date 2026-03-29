@@ -722,7 +722,7 @@ function parseWordJson(jsonStr) {
         let quizMinCountWordCount = 0;  // 背诵次数最小的单词数量
         let quizCurrentWord = null;  // 当前背的单词
         let quizCurrentIndex = 0;  // 当前单词索引
-        let quizWrongWords = [];  // 错题列表
+        let quizWrongWordCount = 0;  // 剩余错题数量
         let quizRecordedWrongOptions = new Set();  // 已记录过的错误选项
         
         async function loadQuizWords() {
@@ -760,18 +760,18 @@ function parseWordJson(jsonStr) {
             }
             
             try {
-                const res = await fetch(`${API}/textbooks/${currentTextbookId}/wrong-words-with-options`, {
+                const res = await fetch(`${API}/textbooks/${currentTextbookId}/wrong-word`, {
                     headers: {'Authorization': `Bearer ${token}`}
                 });
                 const data = await res.json();
-                quizWrongWords = data.words || [];
                 
-                if (quizWrongWords.length > 0) {
-                    quizCurrentIndex = 0;
-                    quizCurrentWord = quizWrongWords[quizCurrentIndex];
+                if (data.word) {
+                    quizCurrentWord = data.word;
+                    quizWrongWordCount = data.wrong_word_count || 0;
+                    updateWordCount(quizWrongWordCount);
                     showQuizWord();
                 } else {
-                    document.getElementById('quizWord').textContent = '暂无错题';
+                    document.getElementById('quizWord').textContent = '恭喜！错题已复习完';
                     document.getElementById('quizOptions').innerHTML = '';
                     updateWordCount(0);
                 }
@@ -835,7 +835,7 @@ function parseWordJson(jsonStr) {
                 options.forEach(o => o.style.pointerEvents = 'none');
                 
                 if (quizMode === 'wrong') {
-                    // 错题复习模式：记录答对
+                    // 错题复习模式：记录答对，然后加载下一条
                     try {
                         await fetch(`${API}/words/${quizCurrentWord.id}/wrong-review-correct`, {
                             method: 'POST',
@@ -849,15 +849,7 @@ function parseWordJson(jsonStr) {
                     
                     // 答对后加载下一题
                     setTimeout(() => {
-                        quizCurrentIndex++;
-                        if (quizCurrentIndex < quizWrongWords.length) {
-                            quizCurrentWord = quizWrongWords[quizCurrentIndex];
-                            showQuizWord();
-                        } else {
-                            document.getElementById('quizWord').textContent = '恭喜！错题已复习完';
-                            document.getElementById('quizOptions').innerHTML = '';
-                            updateWordCount(0);
-                        }
+                        loadWrongWords();
                     }, 800);
                 } else {
                     // 普通背单词模式：记录背诵次数

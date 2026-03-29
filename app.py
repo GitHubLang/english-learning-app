@@ -585,6 +585,102 @@ def get_quiz_words(textbook_id):
         'min_quiz_word_count': min_quiz_word_count
     })
 
+@app.route('/api/textbooks/<int:textbook_id>/wrong-word', methods=['GET'])
+@token_required
+def get_wrong_word(textbook_id):
+    """获取一条错题复习单词（按差值降序）
+    差值 = 答错次数 - 复习答对次数
+    """
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    
+    # 获取一条差值>0的单词
+    cursor.execute("""
+        SELECT w.id, w.textbook_id, w.book_name, w.word, w.word_json,
+               COALESCE(wwc.wrong_count, 0) as wrong_count,
+               COALESCE(wwrc.correct_count, 0) as correct_count,
+               (COALESCE(wwc.wrong_count, 0) - COALESCE(wwrc.correct_count, 0)) as diff_count
+        FROM words w
+        LEFT JOIN word_wrong_counts wwc ON w.id = wwc.word_id 
+            AND wwc.user_id = %s AND wwc.textbook_id = %s
+        LEFT JOIN word_wrong_review_records wwrc ON w.id = wwrc.word_id 
+            AND wwrc.user_id = %s AND wwrc.textbook_id = %s
+        WHERE w.textbook_id = %s 
+            AND COALESCE(wwc.wrong_count, 0) > 0
+            AND (COALESCE(wwc.wrong_count, 0) - COALESCE(wwrc.correct_count, 0)) > 0
+        ORDER BY diff_count DESC
+        LIMIT 1
+    """, (g.user_id, textbook_id, g.user_id, textbook_id, textbook_id))
+    
+    word_row = cursor.fetchone()
+    
+    if not word_row:
+        cursor.close()
+        db.close()
+        return jsonify({'word': None, 'wrong_word_count': 0})
+    
+    # 解析单词JSON
+    parsed = parse_word_json(word_row['word_json'])
+    if not parsed:
+        cursor.close()
+        db.close()
+        return jsonify({'word': None, 'wrong_word_count': 0})
+    
+    parsed['id'] = word_row['id']
+    parsed['textbook_id'] = word_row['textbook_id']
+    parsed['wrong_count'] = word_row['wrong_count']
+    parsed['correct_count'] = word_row['correct_count']
+    parsed['diff_count'] = word_row['diff_count']
+    parsed['word_json'] = word_row['word_json']
+    
+    # 获取该单词的meaning用于生成选项
+    correct_meaning = parsed.get('meaning', '')
+    
+    # 查询该课本的所有单词，解析出meaning用于生成错误选项
+    cursor.execute("""
+        SELECT word_json FROM words 
+        WHERE textbook_id = %s AND word_json IS NOT NULL
+    """, (textbook_id,))
+    all_word_json = cursor.fetchall()
+    
+    # 解析所有meaning
+    all_meanings = []
+    for row in all_word_json:
+        p = parse_word_json(row['word_json'])
+        if p and p.get('meaning') and p['meaning'] != correct_meaning:
+            all_meanings.append(p['meaning'])
+    
+    # 去重并随机打乱
+    import random
+    all_meanings = list(set(all_meanings))
+    random.shuffle(all_meanings)
+    
+    # 生成3个错误选项
+    options = [correct_meaning] + all_meanings[:3]
+    random.shuffle(options)
+    parsed['options'] = options
+    
+    # 计算剩余错题数量
+    cursor.execute("""
+        SELECT COUNT(*) as cnt
+        FROM words w
+        LEFT JOIN word_wrong_counts wwc ON w.id = wwc.word_id 
+            AND wwc.user_id = %s AND wwc.textbook_id = %s
+        LEFT JOIN word_wrong_review_records wwrc ON w.id = wwrc.word_id 
+            AND wwrc.user_id = %s AND wwrc.textbook_id = %s
+        WHERE w.textbook_id = %s 
+            AND COALESCE(wwc.wrong_count, 0) > 0
+            AND (COALESCE(wwc.wrong_count, 0) - COALESCE(wwrc.correct_count, 0)) > 0
+    """, (g.user_id, textbook_id, g.user_id, textbook_id, textbook_id))
+    wrong_word_count = cursor.fetchone()['cnt']
+    
+    cursor.close()
+    db.close()
+    return jsonify({
+        'word': parsed,
+        'wrong_word_count': wrong_word_count
+    })
+
 # ============ 管理员API ============
 
 @app.route('/api/admin/words', methods=['POST'])
