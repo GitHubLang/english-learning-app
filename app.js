@@ -450,13 +450,13 @@ function parseWordJson(jsonStr) {
             const deltaY = e.changedTouches[0].clientY - touchStartY;
             const deltaX = e.changedTouches[0].clientX - touchStartX;
             
-            // 如果详情页已打开，右滑关闭
+            // 如果详情页已打开，右滑关闭，上下左右都不触发其他操作
             const wordDetailModal = document.getElementById('wordDetailModal');
             if (wordDetailModal.classList.contains('show')) {
                 if (deltaX > 100 && Math.abs(deltaX) > Math.abs(deltaY)) {
                     closeWordDetail();
-                    return;
                 }
+                return;
             }
             
             if (Math.abs(deltaY) > 50 && Math.abs(deltaY) > Math.abs(deltaX)) {
