@@ -696,8 +696,9 @@ function parseWordJson(jsonStr) {
                     let choicesHtml = '';
                     if (e.choices && e.choices.length > 0) {
                         for (const c of e.choices) {
-                            const choiceText = c.choice || c;
-                            choicesHtml += `<div class="choice-item">${c.choiceIndex || ''}. ${choiceText}</div>`;
+                            const choiceText = (typeof c === 'object' && c.choice) ? c.choice : String(c);
+                            const choiceNum = (typeof c === 'object' && c.choiceIndex) ? c.choiceIndex : '';
+                            choicesHtml += `<div class="choice-item">${choiceNum}. ${choiceText}</div>`;
                         }
                     }
                     const explainText = e.explain || '';
