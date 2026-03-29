@@ -759,6 +759,7 @@ def get_wrong_word(textbook_id):
             AND COALESCE(wwc.wrong_count, 0) > 0
             AND (COALESCE(wwc.wrong_count, 0) - COALESCE(wwrc.correct_count, 0)) > 0
     """, (g.user_id, textbook_id, g.user_id, textbook_id, textbook_id))
+    cursor.fetchone()  # 消费结果
     
     cursor.close()
     db.close()
