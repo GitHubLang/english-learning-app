@@ -725,6 +725,21 @@ function parseWordJson(jsonStr) {
             
             document.getElementById('detailContent').innerHTML = html;
             document.getElementById('wordDetailModal').classList.add('show');
+            
+            // 详情页触摸滑动关闭
+            const modal = document.getElementById('wordDetailModal');
+            const modalContent = modal.querySelector('.word-detail-container');
+            let modalTouchStartX = 0;
+            
+            modalContent.ontouchstart = function(e) {
+                modalTouchStartX = e.touches[0].clientX;
+            };
+            modalContent.ontouchend = function(e) {
+                const deltaX = e.changedTouches[0].clientX - modalTouchStartX;
+                if (deltaX > 100) {
+                    closeWordDetail();
+                }
+            };
         }
         
         function closeWordDetail() {
