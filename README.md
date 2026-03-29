@@ -70,7 +70,7 @@ python3 app.py
 
 ## word_json字段说明
 
-单词表中的 `word_json` 字段存储有道词典API返回的完整JSON数据，示例结构：
+单词表中的 `word_json` 字段存储词典API返回的完整JSON数据，示例结构：
 
 ```json
 {
