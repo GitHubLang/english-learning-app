@@ -695,15 +695,16 @@ function parseWordJson(jsonStr) {
                 for (const e of word.exams) {
                     let choicesHtml = '';
                     if (e.choices && e.choices.length > 0) {
-                        for (let i = 0; i < e.choices.length; i++) {
-                            const choiceNum = i + 1;
-                            choicesHtml += `<div class="choice-item">${choiceNum}. ${e.choices[i]}</div>`;
+                        for (const c of e.choices) {
+                            const choiceText = typeof c === 'object' ? c.choice : c;
+                            choicesHtml += `<div class="choice-item">${c.choiceIndex || ''}. ${choiceText}</div>`;
                         }
                     }
+                    const explainText = e.answer?.explain?.trim() || '';
                     examsHtml += `<div class="exam-item">
-                        <div class="exam-question">${e.question}</div>
+                        <div class="exam-question">${e.question || ''}</div>
                         <div class="exam-choices">${choicesHtml}</div>
-                        ${e.explain ? `<div class="exam-answer">答案解析：${e.explain}</div>` : ''}
+                        ${explainText ? `<div class="exam-answer">答案解析：${explainText}</div>` : ''}
                     </div>`;
                 }
                 html += `<div class="word-detail-section">
