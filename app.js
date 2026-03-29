@@ -601,7 +601,15 @@ function parseWordJson(jsonStr) {
             if (word.ukphone) phoneticHtml += `<span class="phonetic-item">英 /${word.ukphone}/</span>`;
             if (phoneticHtml) html += `<div class="word-detail-phonetics">${phoneticHtml}</div>`;
             
-            // 3. 中文含义
+            // 3. 图片
+            if (word.picture) {
+                html += `<div class="word-detail-section">
+                    <div class="word-detail-label">图片</div>
+                    <div class="word-detail-picture"><img src="${word.picture}" alt="单词图片" onerror="this.style.display='none'"></div>
+                </div>`;
+            }
+            
+            // 4. 中文含义
             if (word.meaning) {
                 html += `<div class="word-detail-section">
                     <div class="word-detail-label">中文含义</div>
@@ -609,7 +617,15 @@ function parseWordJson(jsonStr) {
                 </div>`;
             }
             
-            // 4. 英文含义
+            // 5. 记忆法
+            if (word.remMethod) {
+                html += `<div class="word-detail-section">
+                    <div class="word-detail-label">记忆法</div>
+                    <div class="word-detail-value">${word.remMethod}</div>
+                </div>`;
+            }
+            
+            // 6. 英文含义
             if (word.meaning_en) {
                 html += `<div class="word-detail-section">
                     <div class="word-detail-label">英文含义</div>
@@ -617,7 +633,7 @@ function parseWordJson(jsonStr) {
                 </div>`;
             }
             
-            // 5. 例句（多个）
+            // 7. 例句（多个）
             if (word.examples && word.examples.length > 0) {
                 let examplesHtml = '';
                 for (const ex of word.examples) {
@@ -632,7 +648,19 @@ function parseWordJson(jsonStr) {
                 </div>`;
             }
             
-            // 6. 相关短语（多个）
+            // 8. 同根词（多个）
+            if (word.relWords && word.relWords.length > 0) {
+                let relWordsHtml = '';
+                for (const r of word.relWords) {
+                    relWordsHtml += `<span class="relword-item">${r.word} ${r.pos} ${r.tran}</span>`;
+                }
+                html += `<div class="word-detail-section">
+                    <div class="word-detail-label">同根词</div>
+                    <div class="word-detail-relwords">${relWordsHtml}</div>
+                </div>`;
+            }
+            
+            // 9. 相关短语（多个）
             if (word.phrases && word.phrases.length > 0) {
                 let phrasesHtml = '';
                 for (const p of word.phrases) {
@@ -647,40 +675,33 @@ function parseWordJson(jsonStr) {
                 </div>`;
             }
             
-            // 7. 近义词（多个）
-            if (word.synos && word.synos.length > 0) {
+            // 10. 近义词（多个）
+            if (word.synonyms && word.synonyms.length > 0) {
                 let synosHtml = '';
-                for (const s of word.synos) {
-                    const pos = s.pos ? `<span class="syno-pos">${s.pos}</span>` : '';
-                    const tran = s.tran ? `<span class="syno-tran">${s.tran}</span>` : '';
-                    const words = s.words ? s.words.join('；') : '';
-                    synosHtml += `<div class="syno-item">
-                        ${pos}${tran}
-                        <span class="syno-words">${words}</span>
-                    </div>`;
+                for (const s of word.synonyms) {
+                    synosHtml += `<span class="synonym-item">${s.word}</span>`;
                 }
                 html += `<div class="word-detail-section">
                     <div class="word-detail-label">近义词</div>
-                    <div class="word-detail-synos">${synosHtml}</div>
+                    <div class="word-detail-synonyms">${synosHtml}</div>
                 </div>`;
             }
             
-            // 8. 相关测试题
+            // 11. 相关测试题
             if (word.exams && word.exams.length > 0) {
                 let examsHtml = '';
                 for (const e of word.exams) {
                     let choicesHtml = '';
-                    if (e.choices) {
-                        for (const c of e.choices) {
-                            const isRight = c.index === e.answer?.rightIndex;
-                            const style = isRight ? 'style="color:#4CAF50;font-weight:bold"' : '';
-                            choicesHtml += `<div class="choice-item" ${style}>${c.index}. ${c.text}</div>`;
+                    if (e.choices && e.choices.length > 0) {
+                        for (let i = 0; i < e.choices.length; i++) {
+                            const choiceNum = i + 1;
+                            choicesHtml += `<div class="choice-item">${choiceNum}. ${e.choices[i]}</div>`;
                         }
                     }
                     examsHtml += `<div class="exam-item">
                         <div class="exam-question">${e.question}</div>
                         <div class="exam-choices">${choicesHtml}</div>
-                        ${e.answer?.explain ? `<div class="exam-answer">答案解析：${e.answer.explain}</div>` : ''}
+                        ${e.explain ? `<div class="exam-answer">答案解析：${e.explain}</div>` : ''}
                     </div>`;
                 }
                 html += `<div class="word-detail-section">

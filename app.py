@@ -51,7 +51,7 @@ def parse_word_json(word_json_str):
         sentences = []
         sentence_data = word_content.get('sentence', {})
         if sentence_data:
-            for sent in sentence_data.get('sentences', [])[:3]:
+            for sent in sentence_data.get('sentences', [])[:5]:
                 s_content = sent.get('sContent', '').strip()
                 s_cn = sent.get('sCn', '').strip()
                 if s_content:
@@ -65,7 +65,7 @@ def parse_word_json(word_json_str):
         phrases = []
         phrase_data = word_content.get('phrase', {})
         if phrase_data:
-            for p in phrase_data.get('phrases', [])[:5]:
+            for p in phrase_data.get('phrases', [])[:10]:
                 p_content = p.get('pContent', '').strip()
                 p_cn = p.get('pCn', '').strip()
                 if p_content:
@@ -74,6 +74,56 @@ def parse_word_json(word_json_str):
         # 提取美音/英音发音参数
         us_speech = word_content.get('usspeech', '')
         uk_speech = word_content.get('ukspeech', '')
+        
+        # 提取图片
+        picture = word_content.get('picture', '')
+        
+        # 提取记忆法
+        rem_method = ''
+        rem_data = word_content.get('remMethod', {})
+        if rem_data:
+            rem_method = rem_data.get('val', '')
+        
+        # 提取同根词
+        rel_words = []
+        rel_data = word_content.get('relWord', {})
+        if rel_data:
+            for rel in rel_data.get('rels', []):
+                pos = rel.get('pos', '')
+                for w in rel.get('words', []):
+                    hwd = w.get('hwd', '').strip()
+                    tran = w.get('tran', '').strip()
+                    if hwd:
+                        rel_words.append({'word': hwd, 'pos': pos, 'tran': tran})
+        
+        # 提取近义词
+        synonyms = []
+        syno_data = word_content.get('syno', {})
+        if syno_data:
+            for syno in syno_data.get('synos', []):
+                pos = syno.get('pos', '')
+                tran = syno.get('tran', '').strip()
+                for hw in syno.get('hwds', []):
+                    w = hw.get('w', '').strip()
+                    if w:
+                        synonyms.append({'word': w, 'pos': pos, 'tran': tran})
+        
+        # 提取测试题
+        exams = []
+        exam_data = word_content.get('exam', [])
+        for ex in exam_data[:5]:
+            question = ex.get('question', '').strip()
+            answer_data = ex.get('answer', {})
+            explain = answer_data.get('explain', '').strip() if answer_data else ''
+            choices_data = ex.get('choices', [])
+            choices = []
+            for c in choices_data:
+                choices.append(c.get('choice', '').strip())
+            exams.append({
+                'question': question,
+                'choices': choices,
+                'explain': explain
+            })
         
         return {
             'word': data.get('headWord', ''),
@@ -85,6 +135,11 @@ def parse_word_json(word_json_str):
             'phrases': phrases,
             'usspeech': us_speech,
             'ukspeech': uk_speech,
+            'picture': picture,
+            'remMethod': rem_method,
+            'relWords': rel_words,
+            'synonyms': synonyms,
+            'exams': exams,
             'raw': data
         }
     except:

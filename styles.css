@@ -1003,6 +1003,43 @@
             font-size: 1rem;
         }
         
+        .word-detail-picture {
+            margin: 10px 0;
+        }
+        
+        .word-detail-picture img {
+            max-width: 200px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .word-detail-relwords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .relword-item {
+            background: var(--surface);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .word-detail-synonyms {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .synonym-item {
+            background: var(--primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
         .word-detail-examples {
             display: flex;
             flex-direction: column;
