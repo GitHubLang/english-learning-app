@@ -696,11 +696,11 @@ function parseWordJson(jsonStr) {
                     let choicesHtml = '';
                     if (e.choices && e.choices.length > 0) {
                         for (const c of e.choices) {
-                            const choiceText = typeof c === 'object' ? c.choice : c;
+                            const choiceText = c.choice || c;
                             choicesHtml += `<div class="choice-item">${c.choiceIndex || ''}. ${choiceText}</div>`;
                         }
                     }
-                    const explainText = e.answer?.explain?.trim() || '';
+                    const explainText = e.explain || '';
                     examsHtml += `<div class="exam-item">
                         <div class="exam-question">${e.question || ''}</div>
                         <div class="exam-choices">${choicesHtml}</div>

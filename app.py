@@ -118,7 +118,10 @@ def parse_word_json(word_json_str):
             choices_data = ex.get('choices', [])
             choices = []
             for c in choices_data:
-                choices.append(c.get('choice', '').strip())
+                choices.append({
+                    'choiceIndex': c.get('choiceIndex', 0),
+                    'choice': c.get('choice', '').strip()
+                })
             exams.append({
                 'question': question,
                 'choices': choices,
