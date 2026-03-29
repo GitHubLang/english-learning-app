@@ -679,7 +679,9 @@ function parseWordJson(jsonStr) {
             if (word.synonyms && word.synonyms.length > 0) {
                 let synosHtml = '';
                 for (const s of word.synonyms) {
-                    synosHtml += `<span class="synonym-item">${s.word}</span>`;
+                    const pos = s.pos ? `<span class="syn-pos">${s.pos}</span>` : '';
+                    const tran = s.tran ? `<span class="syn-tran">${s.tran}</span>` : '';
+                    synosHtml += `<span class="synonym-item">${s.word}${pos}${tran}</span>`;
                 }
                 html += `<div class="word-detail-section">
                     <div class="word-detail-label">近义词</div>

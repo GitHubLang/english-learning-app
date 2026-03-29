@@ -1038,6 +1038,19 @@
             padding: 4px 10px;
             border-radius: 4px;
             font-size: 0.9rem;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+        
+        .syn-pos {
+            opacity: 0.8;
+            margin-left: 4px;
+        }
+        
+        .syn-tran {
+            opacity: 0.9;
+            margin-left: 4px;
         }
         
         .word-detail-examples {
