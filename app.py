@@ -574,7 +574,7 @@ def get_quiz_words(textbook_id):
         LEFT JOIN word_quiz_records wqr ON w.id = wqr.word_id 
             AND wqr.user_id = %s AND wqr.textbook_id = %s
         WHERE w.textbook_id = %s AND COALESCE(wpr.play_count, 0) > 0
-        ORDER BY quiz_count ASC, w.id ASC
+        ORDER BY RAND()
         LIMIT 1
     """, (g.user_id, g.user_id, textbook_id, textbook_id))
     
@@ -666,7 +666,7 @@ def get_wrong_word(textbook_id):
         WHERE w.textbook_id = %s 
             AND COALESCE(wwc.wrong_count, 0) > 0
             AND (COALESCE(wwc.wrong_count, 0) - COALESCE(wwrc.correct_count, 0)) > 0
-        ORDER BY diff_count DESC
+        ORDER BY RAND()
         LIMIT 1
     """, (g.user_id, textbook_id, g.user_id, textbook_id, textbook_id))
     
