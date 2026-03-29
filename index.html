@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>英语学习</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 登录界面 -->
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-title" id="authTitle">登录</div>
+        <input type="text" id="authUsername" placeholder="用户名" autocomplete="off" value="admin1">
+        <input type="password" id="authPassword" placeholder="密码" value="123456">
+        <button class="auth-btn primary" id="authSubmit" onclick="handleAuth()">登录</button>
+        <button class="auth-btn secondary" id="authToggle" onclick="toggleAuth()">注册</button>
+    </div>
+    
+    <div class="app" id="app">
+        <div class="header">
+            <div class="header-left">
+                <select class="textbook-select" id="textbookSelect" onchange="loadTextbook()">
+                    <option value="">选择课本</option>
+                </select>
+            </div>
+            <div class="header-title" id="moduleTitle">学单词</div>
+            <div class="header-right">
+                <span class="word-count" id="wordCount">0</span>
+            </div>
+            <div class="user-avatar" onclick="openSettings()">
+                <span id="userInitial">U</span>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <!-- 学单词 -->
+            <div class="tab-content active" id="tab-learn">
+                <div class="word-card" id="wordCard" ontouchstart="wordCardTouchStart(event)" ontouchmove="wordCardTouchMove(event)" ontouchend="wordCardTouchEnd(event)">
+                    <div class="word-main">
+                        <div class="word-text" id="wordText">点击加载</div>
+                        <div class="word-phonetic" id="wordPhonetic"></div>
+                        <div class="word-meaning" id="wordMeaning"></div>
+                        <div class="word-example" id="wordExample"></div>
+                        <div class="word-example-trans" id="wordExampleTrans"></div>
+                    </div>
+                    <div class="swipe-hint">上下滑动切换 · 左滑查看详情</div>
+                </div>
+            </div>
+            
+            <!-- 背单词 -->
+            <div class="tab-content" id="tab-quiz">
+                <div class="quiz-header">
+                    <div class="quiz-tabs">
+                        <button class="quiz-tab active" onclick="switchQuizTab('normal', this)" style="background:var(--primary);border:1px solid var(--primary);color:white;border-radius:20px;padding:10px 16px;flex:1;font-size:0.9rem;">背单词</button>
+                        <button class="quiz-tab" onclick="switchQuizTab('wrong', this)" style="background:var(--surface);border:1px solid var(--border);color:var(--text-secondary);border-radius:20px;padding:10px 16px;flex:1;font-size:0.9rem;">错题复习</button>
+                    </div>
+                </div>
+                <div class="quiz-card" id="quizCard">
+                    <div class="quiz-word" id="quizWord">点击开始</div>
+                    <button class="quiz-play-btn" id="quizPlayBtn" onclick="playQuizWord()">🔊</button>
+                    <div class="quiz-options" id="quizOptions"></div>
+                </div>
+            </div>
+            
+            <!-- 学语法 -->
+            <div class="tab-content" id="tab-grammar">
+                <div class="grammar-container">
+                    <div class="grammar-toc-overlay" id="grammarTocOverlay" onclick="toggleGrammarToc()"></div>
+                    <div class="grammar-toc-panel" id="grammarTocPanel">
+                        <div class="grammar-toc-header">目 录</div>
+                        <div class="grammar-toc-list" id="grammarTocList"></div>
+                    </div>
+                    <div class="grammar-header-bar">
+                        <button class="grammar-toc-btn" id="grammarTocBtn" onclick="toggleGrammarToc()">☰</button>
+                        <div class="grammar-title" id="grammarTitle">选择章节</div>
+                        <div class="grammar-page-info" id="grammarPageInfo"></div>
+                    </div>
+                    <div class="grammar-content-wrapper" id="grammarContentWrapper"
+                         ontouchstart="grammarTouchStart(event)"
+                         ontouchmove="grammarTouchMove(event)"
+                         ontouchend="grammarTouchEnd(event)">
+                        <div class="grammar-pages" id="grammarPages">
+                            <div class="grammar-page" id="grammarPage">请从目录选择要学习的内容</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 语法练习 -->
+            <div class="tab-content" id="tab-exercise">
+                <div class="exercise-container" id="exerciseContainer"
+                     ontouchstart="exerciseTouchStart(event)"
+                     ontouchmove="exerciseTouchMove(event)"
+                     ontouchend="exerciseTouchEnd(event)"
+                     style="min-height: 100%; height: 100%;">
+                    <div class="exercise-info" id="exerciseInfo">第1题/共0题</div>
+                    <div class="exercise-question" id="exerciseQuestion">题目加载中...</div>
+                    <div class="exercise-options" id="exerciseOptions"></div>
+                    <input type="text" class="exercise-input" id="exerciseInput" placeholder="请输入答案" style="display:none">
+                    <button class="exercise-submit" id="exerciseSubmit" onclick="submitExercise()">提交答案</button>
+                    <div class="exercise-result" id="exerciseResult" style="display:none"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="switchTab('learn')">
+                <div class="nav-item-icon">词</div>
+                <div>学单词</div>
+            </div>
+            <div class="nav-item" onclick="switchTab('quiz')">
+                <div class="nav-item-icon">背</div>
+                <div>背单词</div>
+            </div>
+            <div class="nav-item" onclick="switchTab('grammar')">
+                <div class="nav-item-icon">法</div>
+                <div>学语法</div>
+            </div>
+            <div class="nav-item" onclick="switchTab('exercise')">
+                <div class="nav-item-icon">练</div>
+                <div>练单词</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 单词详情弹窗 -->
+    <div class="modal-overlay" id="wordDetailModal" onclick="if(event.target.id==='wordDetailModal') closeWordDetail()">
+        <div class="word-detail-container" onclick="event.stopPropagation()" ontouchstart="event.stopPropagation()" ontouchmove="event.stopPropagation()" ontouchend="event.stopPropagation()">
+            <button class="modal-close" onclick="closeWordDetail()">×</button>
+            <div class="modal-content" id="detailContent">
+                <!-- 动态填充内容 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 设置弹窗 -->
+    <div class="modal-overlay" id="settingsModal" onclick="if(event.target.id==='settingsModal') closeSettings()">
+        <div class="settings-container" onclick="event.stopPropagation()" ontouchstart="event.stopPropagation()" ontouchmove="event.stopPropagation()" ontouchend="event.stopPropagation()">
+            <div class="settings-header">
+                <button class="settings-back" onclick="closeSettings()">←</button>
+                <span class="settings-title">设置</span>
+                <div style="width:40px"></div>
+            </div>
+            <div class="settings-content">
+            <div class="settings-section">
+                <div class="settings-label">主题</div>
+                <div class="theme-options">
+                    <div class="theme-btn" data-theme="dark" onclick="switchTheme('dark')">
+                        <div class="theme-dot"></div>
+                        <span>深色</span>
+                    </div>
+                    <div class="theme-btn" data-theme="light" onclick="switchTheme('light')">
+                        <div class="theme-dot"></div>
+                        <span>浅色</span>
+                    </div>
+                    <div class="theme-btn" data-theme="auto" onclick="switchTheme('auto')">
+                        <div class="theme-dot"></div>
+                        <span>自动</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <div class="settings-label">账户</div>
+                <div class="settings-info">
+                    <span id="settingsUsername">admin1</span>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <div class="settings-item" onclick="showToast('即将推出')">
+                    <div class="settings-item-left">
+                        <span class="settings-item-icon">👤</span>
+                        <span>个人信息</span>
+                    </div>
+                    <span class="settings-item-arrow">›</span>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <button class="logout-btn" onclick="logout()">退出登录</button>
+            </div>
+        </div>
+    </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
