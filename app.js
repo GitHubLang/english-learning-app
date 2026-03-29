@@ -67,7 +67,7 @@ function parseWordJson(jsonStr) {
                 const choices = [];
                 if (e.choices) {
                     for (const c of e.choices) {
-                        choices.push({ index: c.choiceIndex, text: c.choice || '' });
+                        choices.push({ choiceIndex: c.choiceIndex, choice: c.choice || '' });
                     }
                 }
                 exams.push({
