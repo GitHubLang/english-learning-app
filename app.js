@@ -366,7 +366,7 @@ function parseWordJson(jsonStr) {
         
         function playWord() {
             if (!currentWord) return;
-            speakWordOnly(currentWord.word);
+            playPronunciation(currentWord.word, 'us');
         }
         
         // 检测是否为中文
@@ -376,7 +376,11 @@ function parseWordJson(jsonStr) {
         
         // 只读单词，不读词性
         function speakWordOnly(text) {
-            playPronunciation(text, 'us');
+            speechSynthesis.cancel();
+            const utt = new SpeechSynthesisUtterance(text);
+            utt.lang = 'en-US';
+            utt.rate = 0.8;
+            speechSynthesis.speak(utt);
         }
         
         // 通用speak函数，过滤词性标记，自动检测语言
