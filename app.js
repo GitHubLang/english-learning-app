@@ -296,6 +296,9 @@ function parseWordJson(jsonStr) {
             currentTextbookId = document.getElementById('textbookSelect').value;
             if (!currentTextbookId) return;
             
+            // 切换课本时重置历史状态
+            currentIsHistory = false;
+            
             // 保存选择到服务器
             try {
                 await fetch(`${API}/user/settings`, {
@@ -448,13 +451,13 @@ function parseWordJson(jsonStr) {
         function nextWord() {
             if (isTransitioning) return;
             isTransitioning = true;
-            // 向下滑动，获取下一个最低播放次数的单词
+            // 向下滑动，获取历史记录
             fetchNextWord().finally(() => {
                 setTimeout(() => isTransitioning = false, 300);
             });
         }
         
-        // 向上滑动，获取上一条学习记录
+        // 向上滑动
         function prevWord() {
             if (isTransitioning) return;
             isTransitioning = true;
@@ -463,20 +466,63 @@ function parseWordJson(jsonStr) {
             });
         }
         
+        // 记录当前单词是否来自历史
+        let currentIsHistory = false;
+        
+        async function fetchNextWord() {
+            if (!currentTextbookId) return;
+            
+            try {
+                let url = `${API}/words/random?textbook_id=${currentTextbookId}`;
+                if (currentIsHistory && currentWord && currentWord.id) {
+                    url += `&is_history=true&current_word_id=${currentWord.id}`;
+                }
+                const res = await fetch(url, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const data = await res.json();
+                if (data.word && data.word.id) {
+                    currentWord = data.word;
+                    currentIsHistory = data.is_history === true;
+                    updateWordCount(data.min_word_count);
+                    showWord(data.word);
+                } else if (data.message) {
+                    showToast(data.message);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        
         async function fetchPrevWord() {
             if (!currentTextbookId || !currentWord || !currentWord.id) return;
             
             try {
-                const res = await fetch(`${API}/words/previous?textbook_id=${currentTextbookId}&current_word_id=${currentWord.id}`, {
+                // 如果当前是历史记录，尝试查更晚的历史
+                if (currentIsHistory) {
+                    const res = await fetch(`${API}/words/history-next?textbook_id=${currentTextbookId}&current_word_id=${currentWord.id}`, {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    });
+                    const data = await res.json();
+                    
+                    if (data.word) {
+                        currentWord = data.word;
+                        currentIsHistory = data.is_history === true;
+                        showWord(data.word);
+                        return;
+                    } else if (data.message) {
+                        showToast(data.message);
+                    }
+                }
+                // 否则随机
+                const res = await fetch(`${API}/words/random?textbook_id=${currentTextbookId}`, {
                     headers: {'Authorization': `Bearer ${token}`}
                 });
                 const data = await res.json();
-                
-                if (data.word) {
+                if (data.word && data.word.id) {
                     currentWord = data.word;
+                    currentIsHistory = data.is_history === true;
                     showWord(data.word);
-                } else {
-                    showToast(data.message || '到顶了');
                 }
             } catch (e) {
                 console.error('获取上一条失败:', e);

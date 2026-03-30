@@ -367,13 +367,60 @@ def get_word(id):
 @app.route('/api/words/random', methods=['GET'])
 @token_required
 def get_random_word():
-    """根据播放次数获取随机单词"""
+    """获取单词：随机或历史记录
+    - is_history=true: 查询更早的历史记录
+    - is_history=false: 随机获取
+    """
     textbook_id = request.args.get('textbook_id', type=int)
+    current_word_id = request.args.get('current_word_id', type=int)
+    is_history = request.args.get('is_history', 'false').lower() == 'true'
     
     db = get_db()
     cursor = db.cursor(dictionary=True)
     
-    # 先获取当前播放次数分布
+    # 如果is_history=true，查询历史记录
+    if is_history and current_word_id:
+        # 获取当前单词的更新时间
+        cursor.execute("""
+            SELECT updated_at FROM word_play_records 
+            WHERE user_id = %s AND word_id = %s AND textbook_id = %s
+        """, (g.user_id, current_word_id, textbook_id))
+        current_record = cursor.fetchone()
+        
+        if current_record and current_record['updated_at']:
+            # 查找更早的记录（updated_at < 当前单词时间，按时间降序取第一条）
+            cursor.execute("""
+                SELECT w.id, w.textbook_id, w.book_name, w.word, w.word_json,
+                       wpr.updated_at
+                FROM words w
+                INNER JOIN word_play_records wpr ON w.id = wpr.word_id 
+                    AND wpr.user_id = %s AND wpr.textbook_id = %s
+                WHERE w.textbook_id = %s AND wpr.updated_at < %s
+                ORDER BY wpr.updated_at DESC
+                LIMIT 1
+            """, (g.user_id, textbook_id, textbook_id, current_record['updated_at']))
+            row = cursor.fetchone()
+            
+            if row:
+                parsed = parse_word_json(row['word_json'])
+                if parsed:
+                    parsed['id'] = row['id']
+                    parsed['textbook_id'] = row['textbook_id']
+                    parsed['word_json'] = row['word_json']
+                
+                cursor.close()
+                db.close()
+                return jsonify({
+                    'word': parsed or {},
+                    'is_history': True
+                })
+            
+            # 没找到更早的记录
+            cursor.close()
+            db.close()
+            return jsonify({'word': None, 'is_history': True, 'message': '到顶了'})
+    
+    # 随机获取（正常或fallback）
     cursor.execute("""
         SELECT w.id, COALESCE(wpr.play_count, 0) as play_count
         FROM words w
@@ -419,9 +466,63 @@ def get_random_word():
     
     return jsonify({
         'word': word or {},
-        'min_count': min_count,
-        'min_word_count': len(min_words)
+        'is_history': False
     })
+
+@app.route('/api/words/history-next', methods=['GET'])
+@token_required
+def get_history_next():
+    """向上滑：查询更晚的历史记录"""
+    textbook_id = request.args.get('textbook_id', type=int)
+    current_word_id = request.args.get('current_word_id', type=int)
+    
+    if not textbook_id or not current_word_id:
+        return jsonify({'error': '缺少参数'}), 400
+    
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    
+    # 获取当前单词的更新时间
+    cursor.execute("""
+        SELECT updated_at FROM word_play_records 
+        WHERE user_id = %s AND word_id = %s AND textbook_id = %s
+    """, (g.user_id, current_word_id, textbook_id))
+    current_record = cursor.fetchone()
+    
+    if not current_record or not current_record['updated_at']:
+        cursor.close()
+        db.close()
+        return jsonify({'word': None, 'is_history': False, 'message': '到顶了'})
+    
+    # 查找更晚的记录（updated_at > 当前单词时间，按时间升序取第一条）
+    cursor.execute("""
+        SELECT w.id, w.textbook_id, w.book_name, w.word, w.word_json,
+               wpr.updated_at
+        FROM words w
+        INNER JOIN word_play_records wpr ON w.id = wpr.word_id 
+            AND wpr.user_id = %s AND wpr.textbook_id = %s
+        WHERE w.textbook_id = %s AND wpr.updated_at > %s
+        ORDER BY wpr.updated_at ASC
+        LIMIT 1
+    """, (g.user_id, textbook_id, textbook_id, current_record['updated_at']))
+    
+    row = cursor.fetchone()
+    
+    if not row:
+        cursor.close()
+        db.close()
+        return jsonify({'word': None, 'is_history': False, 'message': '到顶了'})
+    
+    # 解析JSON
+    parsed = parse_word_json(row['word_json'])
+    if parsed:
+        parsed['id'] = row['id']
+        parsed['textbook_id'] = row['textbook_id']
+        parsed['word_json'] = row['word_json']
+    
+    cursor.close()
+    db.close()
+    return jsonify({'word': parsed or {}, 'is_history': True})
 
 @app.route('/api/words/previous', methods=['GET'])
 @token_required
