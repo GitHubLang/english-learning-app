@@ -296,6 +296,9 @@ function parseWordJson(jsonStr) {
             currentTextbookId = document.getElementById('textbookSelect').value;
             if (!currentTextbookId) return;
             
+            // 切换课本时清空历史栈
+            wordHistoryStack = [];
+            
             // 保存选择到服务器
             try {
                 await fetch(`${API}/user/settings`, {
@@ -445,42 +448,35 @@ function parseWordJson(jsonStr) {
             run();
         }
         
+        // 历史记录栈（内存）
+        let wordHistoryStack = [];
+        
         function nextWord() {
             if (isTransitioning) return;
             isTransitioning = true;
+            // 把当前单词压入历史栈
+            if (currentWord && currentWord.id) {
+                wordHistoryStack.push({...currentWord});
+            }
             // 向下滑动，获取下一个最低播放次数的单词
             fetchNextWord().finally(() => {
                 setTimeout(() => isTransitioning = false, 300);
             });
         }
         
-        // 向上滑动，获取上一条学习记录
+        // 向上滑动，从历史栈弹出上一个单词
         function prevWord() {
             if (isTransitioning) return;
-            isTransitioning = true;
-            fetchPrevWord().finally(() => {
-                setTimeout(() => isTransitioning = false, 300);
-            });
-        }
-        
-        async function fetchPrevWord() {
-            if (!currentTextbookId || !currentWord || !currentWord.id) return;
-            
-            try {
-                const res = await fetch(`${API}/words/previous?textbook_id=${currentTextbookId}&current_word_id=${currentWord.id}`, {
-                    headers: {'Authorization': `Bearer ${token}`}
-                });
-                const data = await res.json();
-                
-                if (data.word) {
-                    currentWord = data.word;
-                    showWord(data.word);
-                } else {
-                    showToast(data.message || '到顶了');
-                }
-            } catch (e) {
-                console.error('获取上一条失败:', e);
+            if (wordHistoryStack.length === 0) {
+                showToast('到顶了');
+                return;
             }
+            isTransitioning = true;
+            // 弹出上一个单词
+            const prev = wordHistoryStack.pop();
+            currentWord = prev;
+            showWord(prev);
+            isTransitioning = false;
         }
         
         // Swipe handling
