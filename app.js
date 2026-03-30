@@ -122,6 +122,7 @@ function parseWordJson(jsonStr) {
         let playTimeout = null;
         let wrongWords = [];
         let grammarList = [];
+        let is_history = false;
         
         // 错题缓存
         let wrongWordsCache = { textbookId: null, data: null, timestamp: 0 };
@@ -333,12 +334,13 @@ function parseWordJson(jsonStr) {
         
         async function fetchNextWord() {
             try {
-                const res = await fetch(`${API}/words/random?textbook_id=${currentTextbookId}`, {
+                const res = await fetch(`${API}/words/random?textbook_id=${currentTextbookId}&is_history=&{is_history}`, {
                     headers: {'Authorization': `Bearer ${token}`}
                 });
                 const data = await res.json();
                 if (data.word && data.word.id) {
                     currentWord = data.word;
+                    is_history = data.is_history;
                     updateWordCount(data.min_word_count);  // 只显示待学单词数
                     showWord(data.word);
                 }
@@ -520,6 +522,7 @@ function parseWordJson(jsonStr) {
                 
                 if (data.word) {
                     currentWord = data.word;
+                    is_history = true;
                     currentIsHistory = true;  // 获取历史后标记为true
                     showWord(data.word);
                 } else {
