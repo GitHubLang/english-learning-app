@@ -120,16 +120,21 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            max-width: 50%;
+            flex-shrink: 0;
         }
         
         .header-title {
             font-size: 1.1rem;
             font-weight: 600;
+            flex-shrink: 0;
+            padding: 0 8px;
         }
         
         .header-right {
             display: flex;
             align-items: center;
+            flex-shrink: 0;
         }
         
         .word-count {
