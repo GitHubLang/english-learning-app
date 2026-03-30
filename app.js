@@ -473,9 +473,10 @@ function parseWordJson(jsonStr) {
             if (!currentTextbookId) return;
             
             try {
-                let url = `${API}/words/random?textbook_id=${currentTextbookId}`;
-                if (currentIsHistory && currentWord && currentWord.id) {
-                    url += `&is_history=true&current_word_id=${currentWord.id}`;
+                // 向下滑动：获取历史记录
+                let url = `${API}/words/random?textbook_id=${currentTextbookId}&is_history=true`;
+                if (currentWord && currentWord.id) {
+                    url += `&current_word_id=${currentWord.id}`;
                 }
                 const res = await fetch(url, {
                     headers: {'Authorization': `Bearer ${token}`}
@@ -495,33 +496,18 @@ function parseWordJson(jsonStr) {
         }
         
         async function fetchPrevWord() {
-            if (!currentTextbookId || !currentWord || !currentWord.id) return;
+            if (!currentTextbookId) return;
             
             try {
-                // 如果当前是历史记录，尝试查更晚的历史
-                if (currentIsHistory) {
-                    const res = await fetch(`${API}/words/history-next?textbook_id=${currentTextbookId}&current_word_id=${currentWord.id}`, {
-                        headers: {'Authorization': `Bearer ${token}`}
-                    });
-                    const data = await res.json();
-                    
-                    if (data.word) {
-                        currentWord = data.word;
-                        currentIsHistory = data.is_history === true;
-                        showWord(data.word);
-                        return;
-                    } else if (data.message) {
-                        showToast(data.message);
-                    }
-                }
-                // 否则随机
-                const res = await fetch(`${API}/words/random?textbook_id=${currentTextbookId}`, {
+                // 向上滑动：获取随机
+                const res = await fetch(`${API}/words/random?textbook_id=${currentTextbookId}&is_history=false`, {
                     headers: {'Authorization': `Bearer ${token}`}
                 });
                 const data = await res.json();
                 if (data.word && data.word.id) {
                     currentWord = data.word;
                     currentIsHistory = data.is_history === true;
+                    updateWordCount(data.min_word_count);
                     showWord(data.word);
                 }
             } catch (e) {
@@ -603,13 +589,13 @@ function parseWordJson(jsonStr) {
             else if (deltaX > 80 && Math.abs(deltaX) > Math.abs(deltaY)) {
                 nextWord();
             }
-            // Up swipe - next word (random)
+            // Up swipe - prev word (history)
             else if (deltaY < -50 && Math.abs(deltaY) > Math.abs(deltaX)) {
-                nextWord();
-            }
-            // Down swipe - prev word (history)
-            else if (deltaY > 50 && Math.abs(deltaY) > Math.abs(deltaX)) {
                 prevWord();
+            }
+            // Down swipe - next word (random)
+            else if (deltaY > 50 && Math.abs(deltaY) > Math.abs(deltaX)) {
+                nextWord();
             }
         }
         
@@ -662,14 +648,14 @@ function parseWordJson(jsonStr) {
                     nextWord();
                     mouseDragged = true;
                 }
-                // Up swipe - next word (random)
+                // Up swipe - prev word (history)
                 else if (deltaY < -50 && Math.abs(deltaY) > Math.abs(deltaX)) {
-                    nextWord();
+                    prevWord();
                     mouseDragged = true;
                 }
-                // Down swipe - prev word (history)
+                // Down swipe - next word (random)
                 else if (deltaY > 50 && Math.abs(deltaY) > Math.abs(deltaX)) {
-                    prevWord();
+                    nextWord();
                     mouseDragged = true;
                 }
             });
