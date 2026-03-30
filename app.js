@@ -354,7 +354,7 @@ function parseWordJson(jsonStr) {
             }
             currentWord = word;
             document.getElementById('wordText').textContent = word.word || '';
-            document.getElementById('wordPhonetic').textContent = word.phonetic ? `/${word.phonetic}/` : '';
+            document.getElementById('wordPhonetic').innerHTML = word.phonetic ? `<span onclick="playPronunciation('${word.word}', 'us')">/${word.phonetic}/</span>` : '';
             document.getElementById('wordMeaning').textContent = word.meaning || '';
             // 例句显示英文（只取第一个）
             const example = word.examples && word.examples.length > 0 ? word.examples[0] : null;
