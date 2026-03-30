@@ -256,6 +256,36 @@ def login():
 def get_me():
     return jsonify({'id': g.user_id, 'username': g.username, 'role': g.role})
 
+@app.route('/api/user/settings', methods=['GET'])
+@token_required
+def get_user_settings():
+    """获取用户设置"""
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT settings FROM users WHERE id = %s", (g.user_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    db.close()
+    if row and row['settings']:
+        import json
+        return jsonify(json.loads(row['settings']))
+    return jsonify({})
+
+@app.route('/api/user/settings', methods=['PUT'])
+@token_required
+def update_user_settings():
+    """更新用户设置"""
+    data = request.get_json()
+    import json
+    settings_json = json.dumps(data)
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("UPDATE users SET settings = %s WHERE id = %s", (settings_json, g.user_id))
+    db.commit()
+    cursor.close()
+    db.close()
+    return jsonify({'success': True})
+
 # ============ 单词课本 ============
 
 @app.route('/api/textbooks', methods=['GET'])

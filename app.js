@@ -250,10 +250,23 @@ function parseWordJson(jsonStr) {
                         textbooks.map(t => `<option value="${t.id}">${t.name} (${t.word_count || 0})</option>`).join('');
                 }
                 
-                // 默认选中保存的课本，如果没有则选第一个
+                // 从服务器获取保存的单词本ID
+                let savedTextbookId = null;
+                try {
+                    const settingsRes = await fetch(`${API}/user/settings`, {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    });
+                    if (settingsRes.ok) {
+                        const settings = await settingsRes.json();
+                        savedTextbookId = settings.lastTextbookId;
+                    }
+                } catch (e) {
+                    console.error('获取设置失败', e);
+                }
+                
+                // 默认选中保存的单词本，如果没有则选第一个
                 if (textbooks.length > 0) {
-                    const savedId = localStorage.getItem('lastTextbookId');
-                    const targetId = textbooks.find(t => t.id == savedId) ? savedId : textbooks[0].id;
+                    const targetId = textbooks.find(t => t.id == savedTextbookId) ? savedTextbookId : textbooks[0].id;
                     document.getElementById('textbookSelect').value = targetId;
                     currentTextbookId = targetId;
                     // 同步到背单词选择器
@@ -283,8 +296,19 @@ function parseWordJson(jsonStr) {
             currentTextbookId = document.getElementById('textbookSelect').value;
             if (!currentTextbookId) return;
             
-            // 保存选择到localStorage
-            localStorage.setItem('lastTextbookId', currentTextbookId);
+            // 保存选择到服务器
+            try {
+                await fetch(`${API}/user/settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({lastTextbookId: currentTextbookId})
+                });
+            } catch (e) {
+                console.error('保存设置失败', e);
+            }
             
             // 检查当前在哪个tab
             const isQuizTab = document.getElementById('tab-quiz').classList.contains('active');
