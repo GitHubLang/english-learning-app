@@ -692,14 +692,14 @@
         /* Toast */
         .toast {
             position: fixed;
-            top: 50%;
+            top: 80px;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform: translateX(-50%);
             background: rgba(0,0,0,0.85);
             color: #fff;
-            padding: 20px 36px;
-            border-radius: 12px;
-            font-size: 1.1rem;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 1rem;
             opacity: 0;
             transition: opacity 0.3s;
             z-index: 10000;
