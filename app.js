@@ -861,6 +861,7 @@ function parseWordJson(jsonStr) {
         function playPronunciation(word, type) {
             speechSynthesis.cancel();  // 打断当前TTS
             const audio = new Audio();
+            audio.volume = 1.0;  // 最大音量
             audio.src = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=${type === 'us' ? 2 : 1}`;
             audio.play().catch(e => console.error('有道发音失败:', e));
         }
