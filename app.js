@@ -476,7 +476,7 @@ function parseWordJson(jsonStr) {
                     currentWord = data.word;
                     showWord(data.word);
                 } else {
-                    alert(data.message || '到顶了');
+                    showToast(data.message || '到顶了');
                 }
             } catch (e) {
                 console.error('获取上一条失败:', e);
