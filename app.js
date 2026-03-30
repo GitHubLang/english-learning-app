@@ -591,13 +591,13 @@ function parseWordJson(jsonStr) {
             else if (deltaX > 80 && Math.abs(deltaX) > Math.abs(deltaY)) {
                 nextWord();
             }
-            // Up swipe - prev word (history)
+            // Up swipe - next word (random)
             else if (deltaY < -50 && Math.abs(deltaY) > Math.abs(deltaX)) {
-                prevWord();
-            }
-            // Down swipe - next word (random)
-            else if (deltaY > 50 && Math.abs(deltaY) > Math.abs(deltaX)) {
                 nextWord();
+            }
+            // Down swipe - prev word (history)
+            else if (deltaY > 50 && Math.abs(deltaY) > Math.abs(deltaX)) {
+                prevWord();
             }
         }
         
@@ -650,14 +650,14 @@ function parseWordJson(jsonStr) {
                     nextWord();
                     mouseDragged = true;
                 }
-                // Up swipe - prev word (history)
+                // Up swipe - next word (random)
                 else if (deltaY < -50 && Math.abs(deltaY) > Math.abs(deltaX)) {
-                    prevWord();
+                    nextWord();
                     mouseDragged = true;
                 }
-                // Down swipe - next word (random)
+                // Down swipe - prev word (history)
                 else if (deltaY > 50 && Math.abs(deltaY) > Math.abs(deltaX)) {
-                    nextWord();
+                    prevWord();
                     mouseDragged = true;
                 }
             });
