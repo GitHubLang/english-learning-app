@@ -777,7 +777,7 @@ function parseWordJson(jsonStr) {
         // 播放发音（优先有道API，失败则用浏览器TTS）
         function playPronunciation(word, type) {
             const audio = new Audio();
-            audio.src = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=${type === 'us' ? 1 : 2}`;
+            audio.src = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=${type === 'us' ? 2 : 1}`;
             audio.play().catch(e => {
                 // 有道失败，备用浏览器TTS
                 speechSynthesis.cancel();
