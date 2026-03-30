@@ -774,18 +774,11 @@ function parseWordJson(jsonStr) {
             };
         }
         
-        // 播放发音（优先有道API，失败则用浏览器TTS）
+        // 播放发音（有道API）
         function playPronunciation(word, type) {
             const audio = new Audio();
             audio.src = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=${type === 'us' ? 2 : 1}`;
-            audio.play().catch(e => {
-                // 有道失败，备用浏览器TTS
-                speechSynthesis.cancel();
-                const utt = new SpeechSynthesisUtterance(word);
-                utt.lang = type === 'us' ? 'en-US' : 'en-GB';
-                utt.rate = 0.8;
-                speechSynthesis.speak(utt);
-            });
+            audio.play().catch(e => console.error('有道发音失败:', e));
         }
         
         function closeWordDetail() {
