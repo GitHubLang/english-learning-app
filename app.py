@@ -367,57 +367,13 @@ def get_word(id):
 @app.route('/api/words/random', methods=['GET'])
 @token_required
 def get_random_word():
-    """获取单词：随机或历史记录
-    - is_history=true: 查上一条历史记录
-    - is_history=false或不传: 随机获取
-    """
+    """根据播放次数获取随机单词"""
     textbook_id = request.args.get('textbook_id', type=int)
-    current_word_id = request.args.get('current_word_id', type=int)
-    is_history = request.args.get('is_history', 'false').lower() == 'true'
     
     db = get_db()
     cursor = db.cursor(dictionary=True)
     
-    selected_word = None
-    
-    if is_history and current_word_id:
-        # 查上一条历史记录
-        # 获取当前单词的更新时间
-        cursor.execute("""
-            SELECT updated_at FROM word_play_records 
-            WHERE user_id = %s AND word_id = %s AND textbook_id = %s
-        """, (g.user_id, current_word_id, textbook_id))
-        current_record = cursor.fetchone()
-        
-        if current_record and current_record['updated_at']:
-            # 查找更早的记录（updated_at < 当前单词时间，按时间降序取第一条）
-            cursor.execute("""
-                SELECT w.id, w.textbook_id, w.book_name, w.word, w.word_json,
-                       wpr.updated_at
-                FROM words w
-                INNER JOIN word_play_records wpr ON w.id = wpr.word_id 
-                    AND wpr.user_id = %s AND wpr.textbook_id = %s
-                WHERE w.textbook_id = %s AND wpr.updated_at < %s
-                ORDER BY wpr.updated_at DESC
-                LIMIT 1
-            """, (g.user_id, textbook_id, textbook_id, current_record['updated_at']))
-            row = cursor.fetchone()
-            if row:
-                parsed = parse_word_json(row['word_json'])
-                if parsed:
-                    parsed['id'] = row['id']
-                    parsed['textbook_id'] = row['textbook_id']
-                    parsed['word_json'] = row['word_json']
-                    selected_word = parsed
-                    
-                cursor.close()
-                db.close()
-                return jsonify({
-                    'word': selected_word or {},
-                    'is_history': True
-                })
-    
-    # 随机获取（fallback或正常调用）
+    # 先获取当前播放次数分布
     cursor.execute("""
         SELECT w.id, COALESCE(wpr.play_count, 0) as play_count
         FROM words w
@@ -463,7 +419,8 @@ def get_random_word():
     
     return jsonify({
         'word': word or {},
-        'is_history': False
+        'min_count': min_count,
+        'min_word_count': len(min_words)
     })
 
 @app.route('/api/words/previous', methods=['GET'])
