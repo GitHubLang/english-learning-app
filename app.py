@@ -368,7 +368,7 @@ def get_word(id):
 @token_required
 def get_random_word():
     """获取单词：随机或历史记录
-    - is_history=true: 查询更早的历史记录
+    - is_history=true: 是历史记录
     - is_history=false: 随机获取
     """
     textbook_id = request.args.get('textbook_id', type=int)
@@ -395,8 +395,8 @@ def get_random_word():
                 FROM words w
                 INNER JOIN word_play_records wpr ON w.id = wpr.word_id 
                     AND wpr.user_id = %s AND wpr.textbook_id = %s
-                WHERE w.textbook_id = %s AND wpr.updated_at < %s
-                ORDER BY wpr.updated_at DESC
+                WHERE w.textbook_id = %s AND wpr.updated_at > %s
+                ORDER BY wpr.updated_at 
                 LIMIT 1
             """, (g.user_id, textbook_id, textbook_id, current_record['updated_at']))
             row = cursor.fetchone()
