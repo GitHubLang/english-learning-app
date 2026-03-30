@@ -759,13 +759,16 @@ function parseWordJson(jsonStr) {
             const modal = document.getElementById('wordDetailModal');
             const modalContent = modal.querySelector('.word-detail-container');
             let modalTouchStartX = 0;
+            let modalTouchStartY = 0;
             
             modalContent.ontouchstart = function(e) {
                 modalTouchStartX = e.touches[0].clientX;
+                modalTouchStartY = e.touches[0].clientY;
             };
             modalContent.ontouchend = function(e) {
                 const deltaX = e.changedTouches[0].clientX - modalTouchStartX;
-                if (deltaX > 85) {
+                const deltaY = e.changedTouches[0].clientY - modalTouchStartY;
+                if (deltaX > 85 && deltaX > deltaY) {
                     closeWordDetail();
                 }
             };
