@@ -492,25 +492,20 @@ function parseWordJson(jsonStr) {
         }
         
         async function fetchPrevWord() {
-            if (!currentTextbookId) return;
+            if (!currentTextbookId || !currentWord || !currentWord.id) return;
             
             try {
-                // 向上滑动：获取历史
-                let url = `${API}/words/history-next?textbook_id=${currentTextbookId}`;
-                if (currentWord && currentWord.id) {
-                    url += `&current_word_id=${currentWord.id}`;
-                }
-                const res = await fetch(url, {
+                const res = await fetch(`${API}/words/previous?textbook_id=${currentTextbookId}&current_word_id=${currentWord.id}`, {
                     headers: {'Authorization': `Bearer ${token}`}
                 });
                 const data = await res.json();
-                if (data.word && data.word.id) {
+                
+                if (data.word) {
                     currentWord = data.word;
                     currentIsHistory = data.is_history === true;
-                    updateWordCount(data.min_word_count);
                     showWord(data.word);
-                } else if (data.message) {
-                    showToast(data.message);
+                } else {
+                    showToast(data.message || '到顶了');
                 }
             } catch (e) {
                 console.error('获取上一条失败:', e);

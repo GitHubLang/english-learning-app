@@ -548,7 +548,7 @@ def get_previous_word():
     if not current_record or not current_record['updated_at']:
         cursor.close()
         db.close()
-        return jsonify({'word': None, 'message': '到顶了'})
+        return jsonify({'word': None, 'message': '到顶了', 'is_history': True})
     
     # 查找上一条记录
     cursor.execute("""
@@ -568,7 +568,7 @@ def get_previous_word():
     if not row:
         cursor.close()
         db.close()
-        return jsonify({'word': None, 'message': '到顶了'})
+        return jsonify({'word': None, 'message': '到顶了', 'is_history': True})
     
     # 解析JSON
     parsed = parse_word_json(row['word_json'])
@@ -579,7 +579,7 @@ def get_previous_word():
     
     cursor.close()
     db.close()
-    return jsonify({'word': parsed or {}, 'message': ''})
+    return jsonify({'word': parsed or {}, 'message': '', 'is_history': True})
 
 @app.route('/api/words/<int:id>/wrong', methods=['POST'])
 @token_required
