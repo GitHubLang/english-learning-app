@@ -470,10 +470,27 @@ function parseWordJson(jsonStr) {
         let currentIsHistory = false;
         
         async function fetchNextWord() {
+            // 向上滑：如果在历史中，先查更晚的历史；找不到则随机
             if (!currentTextbookId) return;
             
             try {
-                // 向下滑动：获取随机
+                // 如果当前是历史记录，先尝试查更晚的历史
+                if (currentIsHistory && currentWord && currentWord.id) {
+                    const histRes = await fetch(`${API}/words/history-next?textbook_id=${currentTextbookId}&current_word_id=${currentWord.id}`, {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    });
+                    const histData = await histRes.json();
+                    
+                    if (histData.word) {
+                        currentWord = histData.word;
+                        currentIsHistory = true;
+                        showWord(histData.word);
+                        return;
+                    }
+                    // 找不到更晚的历史了，继续走下面的随机逻辑
+                }
+                
+                // 随机获取
                 const res = await fetch(`${API}/words/random?textbook_id=${currentTextbookId}`, {
                     headers: {'Authorization': `Bearer ${token}`}
                 });
@@ -492,6 +509,7 @@ function parseWordJson(jsonStr) {
         }
         
         async function fetchPrevWord() {
+            // 向下滑动：获取历史（更早的记录）
             if (!currentTextbookId || !currentWord || !currentWord.id) return;
             
             try {
@@ -502,7 +520,7 @@ function parseWordJson(jsonStr) {
                 
                 if (data.word) {
                     currentWord = data.word;
-                    currentIsHistory = data.is_history === true;
+                    currentIsHistory = true;  // 获取历史后标记为true
                     showWord(data.word);
                 } else {
                     showToast(data.message || '到顶了');
