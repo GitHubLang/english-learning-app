@@ -250,16 +250,18 @@ function parseWordJson(jsonStr) {
                         textbooks.map(t => `<option value="${t.id}">${t.name} (${t.word_count || 0})</option>`).join('');
                 }
                 
-                // 默认选中第一个课本
+                // 默认选中保存的课本，如果没有则选第一个
                 if (textbooks.length > 0) {
-                    document.getElementById('textbookSelect').value = textbooks[0].id;
-                    currentTextbookId = textbooks[0].id;
+                    const savedId = localStorage.getItem('lastTextbookId');
+                    const targetId = textbooks.find(t => t.id == savedId) ? savedId : textbooks[0].id;
+                    document.getElementById('textbookSelect').value = targetId;
+                    currentTextbookId = targetId;
                     // 同步到背单词选择器
                     const quizSelect = document.getElementById('quizTextbookSelect');
                     if (quizSelect) {
-                        quizSelect.value = textbooks[0].id;
+                        quizSelect.value = targetId;
                     }
-                    // 获取第一个单词（会更新右上角待学数量）
+                    // 获取单词（会更新右上角待学数量）
                     await fetchNextWord();
                 }
             } catch (e) {
@@ -280,6 +282,9 @@ function parseWordJson(jsonStr) {
         async function loadTextbook() {
             currentTextbookId = document.getElementById('textbookSelect').value;
             if (!currentTextbookId) return;
+            
+            // 保存选择到localStorage
+            localStorage.setItem('lastTextbookId', currentTextbookId);
             
             // 检查当前在哪个tab
             const isQuizTab = document.getElementById('tab-quiz').classList.contains('active');
