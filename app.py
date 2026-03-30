@@ -466,7 +466,8 @@ def get_random_word():
     
     return jsonify({
         'word': word or {},
-        'is_history': False
+        'is_history': False,
+        'min_word_count': len(min_words)
     })
 
 @app.route('/api/words/history-next', methods=['GET'])
