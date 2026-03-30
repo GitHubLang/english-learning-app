@@ -423,6 +423,62 @@ def get_random_word():
         'min_word_count': len(min_words)
     })
 
+@app.route('/api/words/previous', methods=['GET'])
+@token_required
+def get_previous_word():
+    """获取当前单词的上一条学习记录（根据更新时间）"""
+    textbook_id = request.args.get('textbook_id', type=int)
+    current_word_id = request.args.get('current_word_id', type=int)
+    
+    if not textbook_id or not current_word_id:
+        return jsonify({'error': '缺少参数'}), 400
+    
+    db = get_db()
+    cursor = db.cursor(dictionary=True)
+    
+    # 获取当前单词的更新时间
+    cursor.execute("""
+        SELECT updated_at FROM word_play_records 
+        WHERE user_id = %s AND word_id = %s AND textbook_id = %s
+    """, (g.user_id, current_word_id, textbook_id))
+    current_record = cursor.fetchone()
+    
+    if not current_record or not current_record['updated_at']:
+        cursor.close()
+        db.close()
+        return jsonify({'word': None, 'message': '到顶了'})
+    
+    # 查找上一条记录
+    cursor.execute("""
+        SELECT w.id, w.textbook_id, w.book_name, w.word, w.word_json,
+               wpr.updated_at
+        FROM words w
+        INNER JOIN word_play_records wpr ON w.id = wpr.word_id 
+            AND wpr.user_id = %s AND wpr.textbook_id = %s
+        WHERE w.textbook_id = %s 
+            AND wpr.updated_at < %s
+        ORDER BY wpr.updated_at DESC
+        LIMIT 1
+    """, (g.user_id, textbook_id, textbook_id, current_record['updated_at']))
+    
+    row = cursor.fetchone()
+    
+    if not row:
+        cursor.close()
+        db.close()
+        return jsonify({'word': None, 'message': '到顶了'})
+    
+    # 解析JSON
+    parsed = parse_word_json(row['word_json'])
+    if parsed:
+        parsed['id'] = row['id']
+        parsed['textbook_id'] = row['textbook_id']
+        parsed['word_json'] = row['word_json']
+    
+    cursor.close()
+    db.close()
+    return jsonify({'word': parsed or {}, 'message': ''})
+
 @app.route('/api/words/<int:id>/wrong', methods=['POST'])
 @token_required
 def record_wrong(id):

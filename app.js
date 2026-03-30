@@ -448,15 +448,39 @@ function parseWordJson(jsonStr) {
         function nextWord() {
             if (isTransitioning) return;
             isTransitioning = true;
-            // 向上滑或点击下一步时，获取下一个最低播放次数的单词
+            // 向下滑动，获取下一个最低播放次数的单词
             fetchNextWord().finally(() => {
                 setTimeout(() => isTransitioning = false, 300);
             });
         }
         
-        // prevWord不再需要，因为是随机均频播放
+        // 向上滑动，获取上一条学习记录
         function prevWord() {
-            // 均频播放不支持后退，保持空实现
+            if (isTransitioning) return;
+            isTransitioning = true;
+            fetchPrevWord().finally(() => {
+                setTimeout(() => isTransitioning = false, 300);
+            });
+        }
+        
+        async function fetchPrevWord() {
+            if (!currentTextbookId || !currentWord || !currentWord.id) return;
+            
+            try {
+                const res = await fetch(`${API}/words/previous?textbook_id=${currentTextbookId}&current_word_id=${currentWord.id}`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const data = await res.json();
+                
+                if (data.word) {
+                    currentWord = data.word;
+                    showWord(data.word);
+                } else {
+                    alert(data.message || '到顶了');
+                }
+            } catch (e) {
+                console.error('获取上一条失败:', e);
+            }
         }
         
         // Swipe handling
@@ -533,8 +557,12 @@ function parseWordJson(jsonStr) {
             else if (deltaX > 80 && Math.abs(deltaX) > Math.abs(deltaY)) {
                 nextWord();
             }
-            // Up or down swipe - next word
-            else if (Math.abs(deltaY) > 50 && Math.abs(deltaY) > Math.abs(deltaX)) {
+            // Up swipe - previous word (history)
+            else if (deltaY < -50 && Math.abs(deltaY) > Math.abs(deltaX)) {
+                prevWord();
+            }
+            // Down swipe - next word (random)
+            else if (deltaY > 50 && Math.abs(deltaY) > Math.abs(deltaX)) {
                 nextWord();
             }
         }
@@ -588,8 +616,13 @@ function parseWordJson(jsonStr) {
                     nextWord();
                     mouseDragged = true;
                 }
-                // Up or down swipe - next word
-                else if (Math.abs(deltaY) > 50 && Math.abs(deltaY) > Math.abs(deltaX)) {
+                // Up swipe - previous word (history)
+                else if (deltaY < -50 && Math.abs(deltaY) > Math.abs(deltaX)) {
+                    prevWord();
+                    mouseDragged = true;
+                }
+                // Down swipe - next word (random)
+                else if (deltaY > 50 && Math.abs(deltaY) > Math.abs(deltaX)) {
                     nextWord();
                     mouseDragged = true;
                 }
