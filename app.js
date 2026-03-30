@@ -376,11 +376,7 @@ function parseWordJson(jsonStr) {
         
         // 只读单词，不读词性
         function speakWordOnly(text) {
-            speechSynthesis.cancel();
-            const utt = new SpeechSynthesisUtterance(text);
-            utt.lang = 'en-US';
-            utt.rate = 0.8;
-            speechSynthesis.speak(utt);
+            playPronunciation(text, 'us');
         }
         
         // 通用speak函数，过滤词性标记，自动检测语言
@@ -774,11 +770,18 @@ function parseWordJson(jsonStr) {
             };
         }
         
-        // 播放发音（使用有道API）
+        // 播放发音（优先有道API，失败则用浏览器TTS）
         function playPronunciation(word, type) {
             const audio = new Audio();
             audio.src = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=${type === 'us' ? 1 : 2}`;
-            audio.play().catch(e => console.error('播放失败:', e));
+            audio.play().catch(e => {
+                // 有道失败，备用浏览器TTS
+                speechSynthesis.cancel();
+                const utt = new SpeechSynthesisUtterance(word);
+                utt.lang = type === 'us' ? 'en-US' : 'en-GB';
+                utt.rate = 0.8;
+                speechSynthesis.speak(utt);
+            });
         }
         
         function closeWordDetail() {
