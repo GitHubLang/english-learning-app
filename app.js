@@ -635,8 +635,8 @@ function parseWordJson(jsonStr) {
             
             // 2. 音标（美音+英音）
             let phoneticHtml = '';
-            if (word.usphone) phoneticHtml += `<span class="phonetic-item">美 /${word.usphone}/</span>`;
-            if (word.ukphone) phoneticHtml += `<span class="phonetic-item">英 /${word.ukphone}/</span>`;
+            if (word.usphone) phoneticHtml += `<span class="phonetic-item" onclick="playPronunciation('${word.word}', 'us')">美 /${word.usphone}/</span>`;
+            if (word.ukphone) phoneticHtml += `<span class="phonetic-item" onclick="playPronunciation('${word.word}', 'uk')">英 /${word.ukphone}/</span>`;
             if (phoneticHtml) html += `<div class="word-detail-phonetics">${phoneticHtml}</div>`;
             
             // 3. 图片
@@ -772,6 +772,13 @@ function parseWordJson(jsonStr) {
                     closeWordDetail();
                 }
             };
+        }
+        
+        // 播放发音（使用有道API）
+        function playPronunciation(word, type) {
+            const audio = new Audio();
+            audio.src = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=${type === 'us' ? 1 : 2}`;
+            audio.play().catch(e => console.error('播放失败:', e));
         }
         
         function closeWordDetail() {
