@@ -425,24 +425,50 @@ function parseWordJson(jsonStr) {
             clearTimeout(playTimeout);  // 清除之前排队的播放
             speechSynthesis.cancel();
             isPlaying = true;
-            let step = 0;
-            const steps = [
-                () => speakWordOnly(word.word || ''),
-                () => { step = 1; speak(word.meaning || ''); },
-                () => { step = 2; speak(firstExample); },
-                () => { isPlaying = false; }
-            ];
             
-            function run() {
-                if (!isPlaying || step >= steps.length) {
-                    isPlaying = false;
-                    return;
-                }
-                steps[step]();
-                step++;
-                playTimeout = setTimeout(run, 2000);
-            }
-            run();
+            // 第一步：用有道API播放单词美式发音
+            const audio = new Audio();
+            audio.src = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word.word || '')}&type=2`;
+            audio.onended = () => {
+                if (!isPlaying) return;
+                // 第二步：播放中文含义
+                setTimeout(() => {
+                    if (!isPlaying) return;
+                    speak(word.meaning || '');
+                    // 第三步：播放英文例句
+                    setTimeout(() => {
+                        if (!isPlaying) return;
+                        speak(firstExample);
+                        isPlaying = false;
+                    }, 1500);
+                }, 500);
+            };
+            audio.onerror = () => {
+                // 有道失败，备用浏览器TTS
+                speakWordOnly(word.word || '');
+                setTimeout(() => {
+                    if (!isPlaying) return;
+                    speak(word.meaning || '');
+                    setTimeout(() => {
+                        if (!isPlaying) return;
+                        speak(firstExample);
+                        isPlaying = false;
+                    }, 1500);
+                }, 1500);
+            };
+            audio.play().catch(() => {
+                // 有道完全失败，直接用TTS
+                speakWordOnly(word.word || '');
+                setTimeout(() => {
+                    if (!isPlaying) return;
+                    speak(word.meaning || '');
+                    setTimeout(() => {
+                        if (!isPlaying) return;
+                        speak(firstExample);
+                        isPlaying = false;
+                    }, 1500);
+                }, 1500);
+            });
         }
         
         function nextWord() {
