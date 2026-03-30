@@ -473,12 +473,8 @@ function parseWordJson(jsonStr) {
             if (!currentTextbookId) return;
             
             try {
-                // 向下滑动：获取历史记录
-                let url = `${API}/words/random?textbook_id=${currentTextbookId}&is_history=true`;
-                if (currentWord && currentWord.id) {
-                    url += `&current_word_id=${currentWord.id}`;
-                }
-                const res = await fetch(url, {
+                // 向下滑动：获取随机
+                const res = await fetch(`${API}/words/random?textbook_id=${currentTextbookId}`, {
                     headers: {'Authorization': `Bearer ${token}`}
                 });
                 const data = await res.json();
@@ -499,8 +495,12 @@ function parseWordJson(jsonStr) {
             if (!currentTextbookId) return;
             
             try {
-                // 向上滑动：获取随机
-                const res = await fetch(`${API}/words/random?textbook_id=${currentTextbookId}&is_history=false`, {
+                // 向上滑动：获取历史
+                let url = `${API}/words/history-next?textbook_id=${currentTextbookId}`;
+                if (currentWord && currentWord.id) {
+                    url += `&current_word_id=${currentWord.id}`;
+                }
+                const res = await fetch(url, {
                     headers: {'Authorization': `Bearer ${token}`}
                 });
                 const data = await res.json();
@@ -509,6 +509,8 @@ function parseWordJson(jsonStr) {
                     currentIsHistory = data.is_history === true;
                     updateWordCount(data.min_word_count);
                     showWord(data.word);
+                } else if (data.message) {
+                    showToast(data.message);
                 }
             } catch (e) {
                 console.error('获取上一条失败:', e);
