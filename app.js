@@ -451,13 +451,13 @@ function parseWordJson(jsonStr) {
         function nextWord() {
             if (isTransitioning) return;
             isTransitioning = true;
-            // 向下滑动，获取历史记录
+            // 向上滑动，获取下一个单词
             fetchNextWord().finally(() => {
                 setTimeout(() => isTransitioning = false, 300);
             });
         }
         
-        // 向上滑动
+        // 向下滑动，获取历史记录
         function prevWord() {
             if (isTransitioning) return;
             isTransitioning = true;
