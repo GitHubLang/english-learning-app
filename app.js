@@ -131,29 +131,17 @@ function parseWordJson(jsonStr) {
         // Auth
         let isLogin = true;
         
-        function toggleAuth() {
-            isLogin = !isLogin;
-            document.getElementById('authTitle').textContent = isLogin ? '登录' : '注册';
-            document.getElementById('authSubtitle').textContent = isLogin ? '登录后开始学习' : '注册后开始学习';
-            document.getElementById('authSubmit').textContent = isLogin ? '登 录' : '注 册';
-            document.getElementById('authToggle').textContent = isLogin ? '还没有账号？去注册' : '已有账号？去登录';
-        }
-        
-        async function handleAuth() {
-            console.log('handleAuth called');
+        async function handleLogin() {
             const username = document.getElementById('authUsername').value.trim();
             const password = document.getElementById('authPassword').value;
-            console.log('username:', username, 'password:', password ? '***' : 'empty');
             
             if (!username || !password) {
                 showToast('请输入用户名和密码');
                 return;
             }
             
-            const url = isLogin ? `${API}/auth/login` : `${API}/auth/register`;
-            
             try {
-                const res = await fetch(url, {
+                const res = await fetch(`${API}/auth/login`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({username, password})
@@ -169,6 +157,34 @@ function parseWordJson(jsonStr) {
                 user = data.user;
                 localStorage.setItem('english_token', token);
                 showApp();
+            } catch (e) {
+                showToast('网络错误');
+            }
+        }
+        
+        async function handleRegister() {
+            const username = document.getElementById('authUsername').value.trim();
+            const password = document.getElementById('authPassword').value;
+            
+            if (!username || !password) {
+                showToast('请输入用户名和密码');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API}/auth/register`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                const data = await res.json();
+                
+                if (data.error) {
+                    showToast(data.error);
+                    return;
+                }
+                
+                showToast('注册成功，请登录');
             } catch (e) {
                 showToast('网络错误');
             }
