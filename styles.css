@@ -276,14 +276,14 @@
             font-size: 1rem;
             color: var(--text-secondary);
             font-style: italic;
-            max-width: 300px;
+            
             line-height: 1.6;
         }
         
         .word-example-trans {
             font-size: 0.9rem;
             color: var(--primary);
-            max-width: 300px;
+            
             line-height: 1.4;
             margin-top: 8px;
         }
