@@ -257,6 +257,7 @@ function parseWordJson(jsonStr) {
         function initParticles() {
             particlesCanvas = document.getElementById('particles');
             if (!particlesCanvas) return;
+            particlesCanvas.style.display = 'block';
             particlesCtx = particlesCanvas.getContext('2d');
             resizeParticles();
             window.addEventListener('resize', resizeParticles);
