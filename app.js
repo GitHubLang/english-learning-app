@@ -295,7 +295,7 @@ function parseWordJson(jsonStr) {
                 if (p.y < 0 || p.y > particlesCanvas.height) p.dy *= -1;
                 particlesCtx.beginPath();
                 particlesCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                particlesCtx.fillStyle = `rgba(255,255,255,${p.opacity})`;
+                particlesCtx.fillStyle = `rgba(254,44,85,${p.opacity})`;
                 particlesCtx.fill();
             }
             animationId = requestAnimationFrame(animateParticles);

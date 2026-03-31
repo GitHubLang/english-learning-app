@@ -29,7 +29,7 @@
             justify-content: center;
             padding: 20px;
             padding-bottom: env(safe-area-inset-bottom);
-            background: var(--bg);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             position: relative;
             overflow: hidden;
         }
@@ -46,10 +46,10 @@
         .auth-container {
             width: 100%;
             max-width: 380px;
-            background: var(--surface);
+            background: white;
             border-radius: 20px;
             padding: 40px 32px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
             animation: slideUp 0.5s ease-out;
         }
         
@@ -94,13 +94,13 @@
         .logo-en {
             font-size: 1.6rem;
             font-weight: 700;
-            color: var(--text);
+            color: #333;
             letter-spacing: 1px;
         }
         
         .logo-cn {
             font-size: 0.85rem;
-            color: var(--text-secondary);
+            color: #888;
         }
         
         .auth-form {
@@ -114,10 +114,10 @@
         .auth-input {
             width: 100%;
             padding: 15px 16px;
-            border: 1px solid var(--border);
+            border: 1px solid #ddd;
             border-radius: 12px;
-            background: var(--bg);
-            color: var(--text);
+            background: #fafafa;
+            color: #333;
             font-size: 1rem;
             box-sizing: border-box;
             transition: all 0.2s;
@@ -126,7 +126,8 @@
         .auth-input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(254, 44, 85, 0.2);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(254, 44, 85, 0.1);
         }
         
         .auth-btn {
@@ -152,13 +153,13 @@
         }
         
         .auth-btn.secondary {
-            background: var(--bg);
+            background: white;
             color: var(--primary);
-            border: 1px solid var(--border);
+            border: 1px solid #ddd;
         }
         
         .auth-btn.secondary:hover {
-            background: var(--surface);
+            background: #fafafa;
         }
         
         .auth-btn.secondary:disabled {
