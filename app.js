@@ -322,6 +322,7 @@ function parseWordJson(jsonStr) {
         
         // 页面加载时初始化粒子动画
         document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
             setTimeout(initParticles, 100);
         });
         
