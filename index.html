@@ -9,11 +9,23 @@
 <body>
     <!-- 登录界面 -->
     <div class="auth-screen" id="authScreen">
-        <div class="auth-title" id="authTitle">登录</div>
-        <input type="text" id="authUsername" class="auth-input" placeholder="用户名" autocomplete="off" value="admin1">
-        <input type="password" id="authPassword" class="auth-input" placeholder="密码" value="123456">
-        <button class="auth-btn primary" id="authSubmit" onclick="handleAuth()">登录</button>
-        <button class="auth-btn secondary" id="authToggle" onclick="toggleAuth()">注册</button>
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="auth-logo">📚</div>
+                <h1 class="auth-title">英语学习</h1>
+                <p class="auth-subtitle" id="authSubtitle">登录后开始学习</p>
+            </div>
+            <div class="auth-form">
+                <div class="input-group">
+                    <input type="text" id="authUsername" class="auth-input" placeholder="请输入用户名" autocomplete="off" value="admin1">
+                </div>
+                <div class="input-group">
+                    <input type="password" id="authPassword" class="auth-input" placeholder="请输入密码" value="123456">
+                </div>
+                <button class="auth-btn primary" id="authSubmit" onclick="handleAuth()">登 录</button>
+                <button class="auth-btn secondary" id="authToggle" onclick="toggleAuth()">还没有账号？去注册</button>
+            </div>
+        </div>
     </div>
     
     <div class="app" id="app">

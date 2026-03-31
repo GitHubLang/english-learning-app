@@ -134,7 +134,9 @@ function parseWordJson(jsonStr) {
         function toggleAuth() {
             isLogin = !isLogin;
             document.getElementById('authTitle').textContent = isLogin ? '登录' : '注册';
-            document.getElementById('authSubmit').textContent = isLogin ? '登录' : '注册';
+            document.getElementById('authSubtitle').textContent = isLogin ? '登录后开始学习' : '注册后开始学习';
+            document.getElementById('authSubmit').textContent = isLogin ? '登 录' : '注 册';
+            document.getElementById('authToggle').textContent = isLogin ? '还没有账号？去注册' : '已有账号？去登录';
         }
         
         async function handleAuth() {
