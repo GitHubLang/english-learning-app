@@ -810,7 +810,11 @@ function parseWordJson(jsonStr) {
                 }
                 let synosHtml = '';
                 for (const [tran, words] of Object.entries(groupByTran)) {
-                    synosHtml += `<div class="synonym-item"><span class="syn-tran">${tran}</span>: <span class="syn-eng">${words.join(', ')}</span></div>`;
+                    let badgesHtml = '';
+                    for (const w of words) {
+                        badgesHtml += `<span class="synonym-item">${w}</span>`;
+                    }
+                    synosHtml += `<div class="syn-group"><span class="syn-tran">${tran}</span><div class="syn-badges">${badgesHtml}</div></div>`;
                 }
                 if (synosHtml) {
                     html += `<div class="word-detail-section">

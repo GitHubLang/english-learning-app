@@ -1050,9 +1050,22 @@
             padding: 4px 10px;
             border-radius: 4px;
             font-size: 0.9rem;
-            
+            margin-right: 8px;
             margin-bottom: 8px;
-            
+            display: inline-block;
+        }
+        
+        .syn-group {
+            margin-bottom: 10px;
+        }
+        
+        .syn-badges {
+            margin-top: 4px;
+        }
+        
+        .syn-tran {
+            font-size: 0.95rem;
+            color: var(--text);
         }
         
         .syn-pos {
