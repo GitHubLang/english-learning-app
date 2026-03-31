@@ -265,6 +265,14 @@ function parseWordJson(jsonStr) {
             animateParticles();
         }
         
+        function restartParticles() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            setTimeout(initParticles, 50);
+        }
+        
         function resizeParticles() {
             if (!particlesCanvas) return;
             particlesCanvas.width = window.innerWidth;
