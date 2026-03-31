@@ -251,7 +251,68 @@ function parseWordJson(jsonStr) {
             applyTheme(savedTheme);
         }
         
+        // 粒子动画
+        let particlesCanvas, particlesCtx, particles = [], animationId;
+        
+        function initParticles() {
+            particlesCanvas = document.getElementById('particles');
+            if (!particlesCanvas) return;
+            particlesCtx = particlesCanvas.getContext('2d');
+            resizeParticles();
+            window.addEventListener('resize', resizeParticles);
+            createParticles();
+            animateParticles();
+        }
+        
+        function resizeParticles() {
+            if (!particlesCanvas) return;
+            particlesCanvas.width = window.innerWidth;
+            particlesCanvas.height = window.innerHeight;
+        }
+        
+        function createParticles() {
+            particles = [];
+            const count = Math.min(50, Math.floor(window.innerWidth / 20));
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    r: Math.random() * 3 + 1,
+                    dx: (Math.random() - 0.5) * 0.5,
+                    dy: (Math.random() - 0.5) * 0.5,
+                    opacity: Math.random() * 0.5 + 0.2
+                });
+            }
+        }
+        
+        function animateParticles() {
+            if (!particlesCtx) return;
+            particlesCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
+            for (let p of particles) {
+                p.x += p.dx;
+                p.y += p.dy;
+                if (p.x < 0 || p.x > particlesCanvas.width) p.dx *= -1;
+                if (p.y < 0 || p.y > particlesCanvas.height) p.dy *= -1;
+                particlesCtx.beginPath();
+                particlesCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                particlesCtx.fillStyle = `rgba(255,255,255,${p.opacity})`;
+                particlesCtx.fill();
+            }
+            animationId = requestAnimationFrame(animateParticles);
+        }
+        
+        function stopParticles() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            if (particlesCanvas) {
+                particlesCanvas.style.display = 'none';
+            }
+        }
+        
         function showApp() {
+            stopParticles();
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('app').classList.add('active');
             document.getElementById('userInitial').textContent = user.username[0].toUpperCase();
@@ -259,7 +320,10 @@ function parseWordJson(jsonStr) {
             initApp();
         }
         
-        async function initApp() {
+        // 页面加载时初始化粒子动画
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initParticles, 100);
+        });
             await loadTextbooks();
             // loadTextbooks() 已经会调用 fetchNextWord()，不需要重复调用
             loadGrammar();

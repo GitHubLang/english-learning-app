@@ -9,11 +9,27 @@
 <body>
     <!-- 登录界面 -->
     <div class="auth-screen" id="authScreen">
+        <canvas id="particles"></canvas>
         <div class="auth-container">
             <div class="auth-header">
-                <div class="auth-logo">📚</div>
-                <h1 class="auth-title">英语学习</h1>
-                <p class="auth-subtitle">登录后开始学习</p>
+                <div class="logo-container">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 100 100" width="80" height="80">
+                            <defs>
+                                <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#fe2c55"/>
+                                    <stop offset="100%" style="stop-color:#ff6b8a"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="50" cy="50" r="45" fill="url(#logoGrad)"/>
+                            <text x="50" y="62" text-anchor="middle" fill="white" font-size="40" font-weight="bold">A</text>
+                        </svg>
+                    </div>
+                    <div class="logo-text">
+                        <span class="logo-en">English</span>
+                        <span class="logo-cn">英语学习</span>
+                    </div>
+                </div>
             </div>
             <div class="auth-form">
                 <div class="input-group">
