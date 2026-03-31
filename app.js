@@ -796,18 +796,28 @@ function parseWordJson(jsonStr) {
                 </div>`;
             }
             
-            // 10. 近义词（多个）
+            // 10. 近义词（多个，按中文分组）
             if (word.synonyms && word.synonyms.length > 0) {
-                let synosHtml = '';
+                // 按中文分组
+                const groupByTran = {};
                 for (const s of word.synonyms) {
-                    const tran = s.tran ? `<span class="syn-tran">${s.tran}</span>` : '';
-                    const word = s.word ? `<span class="syn-word">${s.word}</span>` : '';
-                    synosHtml += `<div class="synonym-item">${tran} ${word}</div>`;
+                    const tran = s.tran || '其他';
+                    const engWord = s.word || '';
+                    if (engWord) {
+                        if (!groupByTran[tran]) groupByTran[tran] = [];
+                        groupByTran[tran].push(engWord);
+                    }
                 }
-                html += `<div class="word-detail-section">
-                    <div class="word-detail-label">近义词</div>
-                    <div class="word-detail-synonyms">${synosHtml}</div>
-                </div>`;
+                let synosHtml = '';
+                for (const [tran, words] of Object.entries(groupByTran)) {
+                    synosHtml += `<div class="synonym-item"><span class="syn-tran">${tran}</span>: <span class="syn-eng">${words.join(', ')}</span></div>`;
+                }
+                if (synosHtml) {
+                    html += `<div class="word-detail-section">
+                        <div class="word-detail-label">近义词</div>
+                        <div class="word-detail-synonyms">${synosHtml}</div>
+                    </div>`;
+                }
             }
             
             // 11. 相关测试题
