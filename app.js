@@ -324,12 +324,8 @@ function parseWordJson(jsonStr) {
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(initParticles, 100);
         });
-            await loadTextbooks();
-            // loadTextbooks() 已经会调用 fetchNextWord()，不需要重复调用
-            loadGrammar();
-        }
         
-        async function loadTextbooks() {
+        async function initApp() {
             try {
                 const res = await fetch(`${API}/textbooks`);
                 textbooks = await res.json();
