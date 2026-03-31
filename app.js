@@ -163,6 +163,12 @@ function parseWordJson(jsonStr) {
         }
         
         async function handleRegister() {
+            // 检查是否已注册过
+            if (localStorage.getItem('registered')) {
+                showToast('该设备已注册过，请直接登录');
+                return;
+            }
+            
             const username = document.getElementById('authUsername').value.trim();
             const password = document.getElementById('authPassword').value;
             
@@ -184,6 +190,11 @@ function parseWordJson(jsonStr) {
                     return;
                 }
                 
+                // 标记该设备已注册
+                localStorage.setItem('registered', 'true');
+                // 禁用注册按钮
+                document.getElementById('registerBtn').disabled = true;
+                document.getElementById('registerBtn').style.opacity = '0.5';
                 showToast('注册成功，请登录');
             } catch (e) {
                 showToast('网络错误');

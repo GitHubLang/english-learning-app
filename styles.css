@@ -29,38 +29,38 @@
             justify-content: center;
             padding: 20px;
             padding-bottom: env(safe-area-inset-bottom);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--bg);
         }
         
         .auth-container {
             width: 100%;
-            max-width: 380px;
-            background: white;
-            border-radius: 24px;
-            padding: 40px 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 360px;
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 36px 28px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
         }
         
         .auth-header {
             text-align: center;
-            margin-bottom: 35px;
+            margin-bottom: 28px;
         }
         
         .auth-logo {
-            font-size: 3.5rem;
-            margin-bottom: 15px;
+            font-size: 3rem;
+            margin-bottom: 12px;
         }
         
         .auth-title {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: #1a1a2e;
-            margin: 0 0 8px 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0 0 6px 0;
         }
         
         .auth-subtitle {
-            font-size: 0.95rem;
-            color: #888;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
             margin: 0;
         }
         
@@ -69,66 +69,60 @@
         }
         
         .input-group {
-            margin-bottom: 18px;
+            margin-bottom: 14px;
         }
         
         .auth-input {
             width: 100%;
-            padding: 16px 18px;
-            border: 2px solid #e8e8e8;
-            border-radius: 12px;
-            background: #f8f9fa;
-            color: #333;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg);
+            color: var(--text);
             font-size: 1rem;
             box-sizing: border-box;
-            transition: all 0.3s;
+            transition: all 0.2s;
         }
         
         .auth-input:focus {
             outline: none;
-            border-color: #667eea;
-            background: white;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+            border-color: var(--primary);
         }
         
         .auth-btn {
             width: 100%;
-            padding: 16px;
+            padding: 14px;
             border: none;
-            border-radius: 12px;
-            font-size: 1.05rem;
+            border-radius: 10px;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            margin-bottom: 15px;
-            transition: all 0.3s;
+            margin-bottom: 12px;
+            transition: all 0.2s;
         }
         
         .auth-btn.primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary);
             color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
         
         .auth-btn.primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+            opacity: 0.9;
         }
         
         .auth-btn.secondary {
-            background: transparent;
-            color: #667eea;
-            font-weight: 500;
+            background: var(--bg);
+            color: var(--primary);
+            border: 1px solid var(--border);
         }
         
         .auth-btn.secondary:hover {
-            color: #764ba2;
+            background: var(--surface);
         }
         
-        .auth-switch {
-            text-align: center;
-            margin-top: 20px;
-            color: #888;
-            font-size: 0.9rem;
+        .auth-btn.secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         /* Main App */
