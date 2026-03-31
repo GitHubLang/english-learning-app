@@ -212,6 +212,7 @@ function parseWordJson(jsonStr) {
             localStorage.removeItem('english_token');
             document.getElementById('authScreen').style.display = 'flex';
             document.getElementById('app').classList.remove('active');
+            restartParticles();
         }
         
         function openSettings() {
