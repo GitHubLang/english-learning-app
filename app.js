@@ -272,15 +272,15 @@ function parseWordJson(jsonStr) {
         
         function createParticles() {
             particles = [];
-            const count = Math.min(50, Math.floor(window.innerWidth / 20));
+            const count = Math.min(30, Math.floor(window.innerWidth / 30));
             for (let i = 0; i < count; i++) {
                 particles.push({
                     x: Math.random() * window.innerWidth,
                     y: Math.random() * window.innerHeight,
-                    r: Math.random() * 3 + 1,
-                    dx: (Math.random() - 0.5) * 0.5,
-                    dy: (Math.random() - 0.5) * 0.5,
-                    opacity: Math.random() * 0.5 + 0.2
+                    r: Math.random() * 2 + 1,
+                    dx: (Math.random() - 0.5) * 0.3,
+                    dy: (Math.random() - 0.5) * 0.3,
+                    opacity: Math.random() * 0.3 + 0.1
                 });
             }
         }
