@@ -194,7 +194,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            max-width: 100%;
+            max-width: 30%;
             flex-shrink: 0;
         }
         
@@ -229,7 +229,7 @@
             font-size: 0.9rem;
             cursor: pointer;
             min-width: 120px;
-            max-width: 100%;
+            max-width: 30%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -630,7 +630,7 @@
         }
         
         .grammar-page img {
-            max-width: 100%;
+            max-width: 30%;
             height: auto;
             max-height: 300px;
             display: block;
@@ -834,6 +834,16 @@
             z-index: 201;
         }
         
+        /* 深色模式变量 */
+        [data-theme="dark"] {
+            --primary: #fe2c55;
+            --bg: #121212;
+            --surface: #1f1f1f;
+            --text: #ffffff;
+            --text-secondary: #8a8a8a;
+            --border: #2f2f2f;
+        }
+        
         /* Word Detail Modal - 浅色模式适配 */
         [data-theme="light"] .modal-overlay {
             background: rgba(0,0,0,0.5);
@@ -845,6 +855,10 @@
         
         [data-theme="light"] .word-detail-phonetic {
             color: #666666;
+        }
+        
+        [data-theme="dark"] .modal-content {
+            background: var(--surface);
         }
         
         [data-theme="light"] .word-detail-label {
