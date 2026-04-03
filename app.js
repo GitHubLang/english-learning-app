@@ -217,7 +217,7 @@ function parseWordJson(jsonStr) {
         
         function openSettings() {
             const modal = document.getElementById('settingsModal');
-            const theme = localStorage.getItem('theme') || 'dark';
+            const theme = localStorage.getItem('theme') || 'light';
             document.querySelectorAll('.theme-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.theme === theme);
             });
@@ -248,7 +248,7 @@ function parseWordJson(jsonStr) {
         }
         
         function initTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const savedTheme = localStorage.getItem('theme') || 'light';
             applyTheme(savedTheme);
         }
         
