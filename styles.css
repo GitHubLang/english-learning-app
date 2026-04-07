@@ -1,38 +1,23 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
-            /* Apple Color System */
             --primary: #fe2c55;
-            --bg: #f5f5f7;
+            --bg: #f5f5f5;
             --surface: #ffffff;
-            --text: #1d1d1f;
-            --text-secondary: rgba(0,0,0,0.48);
-            --border: transparent;
+            --text: #333333;
+            --text-secondary: #888888;
+            --border: #e0e0e0;
             --success: #00c853;
             --error: #ff5252;
-            /* Dark mode */
-            --bg-dark: #000000;
-            --surface-dark: #1d1d1f;
-            --text-dark: #ffffff;
-            --text-secondary-dark: rgba(255,255,255,0.48);
-        }
-        
-        [data-theme="dark"] {
-            --bg: var(--bg-dark);
-            --surface: var(--surface-dark);
-            --text: var(--text-dark);
-            --text-secondary: var(--text-secondary-dark);
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg);
             color: var(--text);
             height: 100vh;
             height: 100dvh;
             overflow: hidden;
-            letter-spacing: -0.374px;
-            line-height: 1.47;
         }
         
         /* Auth Screen */
@@ -44,13 +29,13 @@
             justify-content: center;
             padding: 20px;
             padding-bottom: env(safe-area-inset-bottom);
-            background: var(--bg);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             position: relative;
             overflow: hidden;
         }
         
         [data-theme="dark"] .auth-screen {
-            background: #000000;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         }
         
         #particles {
@@ -186,31 +171,28 @@
         
         .auth-btn.primary {
             background: var(--primary);
-            color: #ffffff;
-            border-radius: 8px;
-            padding: 8px 15px;
-            font-weight: 400;
+            color: white;
         }
         
         .auth-btn.primary:hover {
             opacity: 0.9;
+            transform: translateY(-1px);
         }
         
         .auth-btn.secondary {
-            background: var(--surface);
+            background: white;
             color: var(--primary);
-            border: none;
-            border-radius: 8px;
+            border: 1px solid #ddd;
         }
         
         .auth-btn.secondary:hover {
-            opacity: 0.9;
+            background: #fafafa;
         }
         
         [data-theme="dark"] .auth-btn.secondary {
             background: #2a2a2a;
             color: var(--primary);
-        }
+            border-color: #444;
         }
         
         [data-theme="dark"] .auth-btn.secondary:hover {
@@ -267,20 +249,19 @@
         }
         
         .word-count {
-            padding: 4px 12px;
+            padding: 4px 10px;
             background: var(--primary);
-            color: #ffffff;
-            border-radius: 980px;
+            color: white;
+            border-radius: 12px;
             font-size: 0.8rem;
             font-weight: 500;
-            letter-spacing: -0.224px;
         }
         
         .textbook-select {
-            padding: 8px 14px;
-            background: rgba(0,0,0,0.04);
-            border: none;
-            border-radius: 11px;
+            padding: 8px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
             color: var(--text);
             font-size: 0.9rem;
             cursor: pointer;
@@ -296,7 +277,7 @@
             height: 28px;
             border-radius: 50%;
             background: var(--primary);
-            color: #ffffff;
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -334,17 +315,11 @@
         /* Bottom Nav */
         .bottom-nav {
             display: flex;
-            background: rgba(255,255,255,0.72);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-top: none;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
             flex-shrink: 0;
             padding-bottom: env(safe-area-inset-bottom);
             min-height: 60px;
-        }
-        
-        [data-theme="dark"] .bottom-nav {
-            background: rgba(29,29,31,0.72);
         }
         
         .nav-item {
@@ -379,7 +354,7 @@
             flex-direction: column;
             justify-content: flex-start;
             align-items: center;
-            padding: 40px 20px;
+            padding: 20px;
             touch-action: pan-y;
             overflow-y: auto;
             min-height: 0;
@@ -387,42 +362,39 @@
         
         .word-main {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
         
         .word-text {
-            font-size: 3.5rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-            letter-spacing: -0.28px;
-            line-height: 1.07;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
         }
         
         .word-phonetic {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             color: var(--text-secondary);
-            margin-bottom: 24px;
-            letter-spacing: 0.196px;
+            margin-bottom: 20px;
         }
         
         .word-meaning {
             font-size: 1.5rem;
-            color: var(--text);
+            color: var(--primary);
             margin-bottom: 8px;
-            font-weight: 400;
         }
         
         .word-example {
             font-size: 1rem;
             color: var(--text-secondary);
             font-style: italic;
+            
             line-height: 1.6;
-            letter-spacing: -0.374px;
         }
         
         .word-example-trans {
             font-size: 0.9rem;
-            color: var(--text-secondary);
+            color: var(--primary);
+            
             line-height: 1.4;
             margin-top: 8px;
         }
@@ -442,19 +414,17 @@
             height: 50px;
             border-radius: 50%;
             background: var(--surface);
-            border: none;
+            border: 1px solid var(--border);
             color: var(--text);
             font-size: 1.2rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: rgba(0,0,0,0.22) 3px 5px 30px 0px;
         }
         
         .word-action-btn:active {
             background: var(--primary);
-            color: #ffffff;
         }
         
         .swipe-hint {
