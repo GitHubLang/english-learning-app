@@ -267,19 +267,20 @@
         }
         
         .word-count {
-            padding: 4px 10px;
+            padding: 4px 12px;
             background: var(--primary);
-            color: white;
-            border-radius: 12px;
+            color: #ffffff;
+            border-radius: 980px;
             font-size: 0.8rem;
             font-weight: 500;
+            letter-spacing: -0.224px;
         }
         
         .textbook-select {
-            padding: 8px 12px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
+            padding: 8px 14px;
+            background: rgba(0,0,0,0.04);
+            border: none;
+            border-radius: 11px;
             color: var(--text);
             font-size: 0.9rem;
             cursor: pointer;
@@ -295,7 +296,7 @@
             height: 28px;
             border-radius: 50%;
             background: var(--primary);
-            color: white;
+            color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -441,17 +442,19 @@
             height: 50px;
             border-radius: 50%;
             background: var(--surface);
-            border: 1px solid var(--border);
+            border: none;
             color: var(--text);
             font-size: 1.2rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: rgba(0,0,0,0.22) 3px 5px 30px 0px;
         }
         
         .word-action-btn:active {
             background: var(--primary);
+            color: #ffffff;
         }
         
         .swipe-hint {
