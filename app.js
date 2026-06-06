@@ -1436,10 +1436,9 @@ function parseWordJson(jsonStr) {
             const sp = new Set([0, n]);
             
             // 1. 前缀
-            const pre = ['pre','pro','per','con','com','dis','mis','non','out',
-                'over','under','inter','extra','anti','ante','auto','semi',
-                'multi','micro','macro','super','ultra','trans','sub',
-                'im','in','il','ir','em','en','de','re','be','ex','un','up'];
+            const pre = ['over','under','inter','extra','counter',
+                'anti','ante','auto','semi','multi','micro','macro',
+                'super','ultra','trans','sub','non','mis','pre','pro','per','con','com','dis','out'];
             for (const p of pre) {
                 if (lc.startsWith(p) && lc.length > p.length + 2 && isV[p.length]) {
                     sp.add(p.length); break;
