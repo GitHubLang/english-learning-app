@@ -645,6 +645,172 @@ function parseWordJson(jsonStr) {
             });
         }
         
+        // ========== 单词搜索（分页 + 无限滚动）==========
+        let searchTimeout = null;
+        let searchQuery = '';
+        let searchOffset = 0;
+        let searchTotal = 0;
+        let searchLoading = false;
+        let searchAllLoaded = false;
+        const SEARCH_PAGE_SIZE = 50;
+        
+        document.getElementById('searchInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                resetAndSearch();
+            }
+        });
+        
+        // 实时搜索
+        document.getElementById('searchInput').addEventListener('input', e => {
+            if (searchTimeout) clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(resetAndSearch, 300);
+        });
+        
+        // 搜索结果容器滚动检测（无限加载）
+        document.getElementById('searchResults').addEventListener('scroll', e => {
+            const el = e.target;
+            if (searchLoading || searchAllLoaded) return;
+            // 滚到距离底部 100px 时加载更多
+            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
+                loadMoreSearchResults();
+            }
+        });
+        
+        function resetAndSearch() {
+            // 重置分页状态
+            searchOffset = 0;
+            searchTotal = 0;
+            searchAllLoaded = false;
+            searchQuery = document.getElementById('searchInput').value.trim();
+            
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = '';
+            resultsDiv.scrollTop = 0;
+            
+            doSearch(true);
+        }
+        
+        async function doSearch(isReset) {
+            const q = searchQuery;
+            const resultsDiv = document.getElementById('searchResults');
+            const statusDiv = document.getElementById('searchStatus');
+            
+            if (!q) {
+                statusDiv.textContent = '输入单词开始搜索';
+                return;
+            }
+            
+            if (q.length < 2) {
+                resultsDiv.innerHTML = '';
+                statusDiv.textContent = '请输入至少2个字符';
+                return;
+            }
+            
+            if (searchLoading) return;
+            searchLoading = true;
+            
+            if (isReset) {
+                statusDiv.textContent = '搜索中...';
+            }
+            
+            try {
+                const needTotal = isReset ? 'true' : 'false';
+                const url = `${API}/words/search?q=${encodeURIComponent(q)}&limit=${SEARCH_PAGE_SIZE}&offset=${searchOffset}&need_total=${needTotal}`;
+                const res = await fetch(url, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const data = await res.json();
+                
+                if (isReset) {
+                    searchTotal = data.total || 0;
+                }
+                
+                if (!data.words || data.words.length === 0) {
+                    if (isReset) {
+                        resultsDiv.innerHTML = '<div class="search-no-results">没有找到匹配的单词，请尝试其他关键词</div>';
+                        statusDiv.textContent = `搜索"${q}"：未找到结果`;
+                    }
+                    searchAllLoaded = true;
+                    searchLoading = false;
+                    return;
+                }
+                
+                // 更新状态栏
+                const loadedSoFar = searchOffset + data.words.length;
+                if (searchTotal > 0) {
+                    const displayLoaded = Math.min(loadedSoFar, searchTotal);
+                    const tail = loadedSoFar >= searchTotal ? '（全部）' : '';
+                    statusDiv.textContent = `搜索"${q}"：共 ${searchTotal} 个结果${tail}`;
+                } else {
+                    statusDiv.textContent = `搜索"${q}"：已加载 ${loadedSoFar} 个结果`;
+                }
+                
+                // 追加到结果列表
+                const newItems = data.words.map(w => {
+                    const safeWord = w.word.replace(/'/g, "\\'");
+                    return `
+                    <div class="search-result-item" onclick="showSearchWordDetail(${w.id}, ${w.textbook_id})">
+                        <div class="search-result-left">
+                            <div class="search-result-word">${safeWord}</div>
+                            <div class="search-result-meaning">${(w.meaning || '').replace(/'/g, "\\'")}</div>
+                        </div>
+                        <div class="search-result-textbook">${(w.textbook_title || w.book_name || '').replace(/'/g, "\\'")}</div>
+                    </div>`;
+                }).join('');
+                
+                if (isReset) {
+                    resultsDiv.innerHTML = newItems;
+                } else {
+                    resultsDiv.insertAdjacentHTML('beforeend', newItems);
+                }
+                
+                // 更新偏移
+                searchOffset += data.words.length;
+                
+                // 检查是否全部加载完毕
+                if (searchTotal > 0 && searchOffset >= searchTotal) {
+                    searchAllLoaded = true;
+                } else if (data.words.length < SEARCH_PAGE_SIZE) {
+                    searchAllLoaded = true;
+                }
+                
+                // 自动填充：如果内容没填满容器，继续加载下一页
+                if (!searchAllLoaded) {
+                    const el = document.getElementById('searchResults');
+                    // 延迟一帧等 DOM 渲染完再判断
+                    requestAnimationFrame(() => {
+                        if (el.scrollHeight <= el.clientHeight + 50) {
+                            loadMoreSearchResults();
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('搜索失败:', e);
+                statusDiv.textContent = '搜索失败，请重试';
+            }
+            
+            searchLoading = false;
+        }
+        
+        async function loadMoreSearchResults() {
+            if (searchLoading || searchAllLoaded) return;
+            await doSearch(false);
+        }
+        
+        async function showSearchWordDetail(wordId, textbookId) {
+            try {
+                const res = await fetch(`${API}/words/${wordId}`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const wordData = await res.json();
+                if (!wordData || !wordData.word) return;
+                openWordDetail(wordData);
+            } catch (e) {
+                console.error('获取单词详情失败:', e);
+            }
+        }
+        
         // 记录当前单词是否来自历史
         let currentIsHistory = false;
         
@@ -858,6 +1024,45 @@ function parseWordJson(jsonStr) {
             wordCard.addEventListener('mouseleave', e => {
                 mouseDown = false;
             });
+        
+        // Mouse wheel support - 滚轮上下切换单词
+        wordCard.addEventListener('wheel', e => {
+            // 只在学单词标签页有效
+            if (!document.getElementById('tab-learn').classList.contains('active')) return;
+            
+            // 如果有模态框打开，不处理
+            const wordDetailModal = document.getElementById('wordDetailModal');
+            const settingsModal = document.getElementById('settingsModal');
+            if (wordDetailModal.classList.contains('show') || settingsModal.classList.contains('show')) return;
+            
+            // 检查单词卡片内容是否可滚动（例句可能溢出）
+            const isScrollable = wordCard.scrollHeight > wordCard.clientHeight + 2;
+            
+            if (isScrollable) {
+                // 内容可滚动时，只在边界触发翻词
+                if (e.deltaY > 0) {
+                    // 滚轮向下 → 检查是否在底部
+                    if (wordCard.scrollTop + wordCard.clientHeight >= wordCard.scrollHeight - 5) {
+                        e.preventDefault();
+                        nextWord();
+                    }
+                } else {
+                    // 滚轮向上 → 检查是否在顶部
+                    if (wordCard.scrollTop <= 5) {
+                        e.preventDefault();
+                        prevWord();
+                    }
+                }
+            } else {
+                // 内容完全可见，直接翻词
+                e.preventDefault();
+                if (e.deltaY > 0) {
+                    nextWord();  // 滚轮向下 = 下一个单词
+                } else {
+                    prevWord();  // 滚轮向上 = 上一个单词
+                }
+            }
+        }, { passive: false });
             
             // 处理点击事件（只有非拖拽时才触发）
             wordCard.addEventListener('click', e => {
@@ -876,15 +1081,16 @@ function parseWordJson(jsonStr) {
             });
         }
         
-        function openWordDetail() {
-            if (!currentWord) return;
+        function openWordDetail(customWord) {
+            const wordObj = customWord || currentWord;
+            if (!wordObj) return;
             
             // 如果有word_json，用parseWordJson解析
-            let word = currentWord;
-            if (currentWord.word_json) {
-                const parsed = parseWordJson(currentWord.word_json);
+            let word = wordObj;
+            if (wordObj.word_json) {
+                const parsed = parseWordJson(wordObj.word_json);
                 if (parsed) {
-                    word = { ...currentWord, ...parsed };
+                    word = { ...wordObj, ...parsed };
                 }
             }
             
@@ -1771,7 +1977,7 @@ function parseWordJson(jsonStr) {
             isPlaying = false;
             
             document.querySelectorAll('.nav-item').forEach((el, i) => {
-                el.classList.toggle('active', ['learn', 'quiz', 'grammar', 'exercise'][i] === tab);
+                el.classList.toggle('active', ['learn', 'quiz', 'search', 'grammar', 'exercise'][i] === tab);
             });
             
             document.querySelectorAll('.tab-content').forEach(el => {
@@ -1781,6 +1987,7 @@ function parseWordJson(jsonStr) {
             const tabId = {
                 'learn': 'tab-learn',
                 'quiz': 'tab-quiz', 
+                'search': 'tab-search',
                 'grammar': 'tab-grammar',
                 'exercise': 'tab-exercise'
             }[tab];
@@ -1789,12 +1996,13 @@ function parseWordJson(jsonStr) {
             document.getElementById('moduleTitle').textContent = {
                 'learn': '学单词',
                 'quiz': '背单词',
+                'search': '查单词',
                 'grammar': '学语法',
                 'exercise': '语法练习'
             }[tab];
             
             // 显示/隐藏 header-left (课本选择) 和 header-right (单词数量)
-            // 只在 学单词和背单词 显示
+            // 只在 学单词、背单词 和 查单词 显示
             const isWordTab = (tab === 'learn' || tab === 'quiz');
             document.querySelector('.header-left').style.display = isWordTab ? 'flex' : 'none';
             document.querySelector('.header-right').style.display = isWordTab ? 'flex' : 'none';

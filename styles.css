@@ -343,6 +343,16 @@
             margin-bottom: 2px;
         }
         
+        .nav-icon-search {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .nav-icon-search svg {
+            display: block;
+        }
+        
         .nav-item div:last-child {
             font-size: 0.7rem;
         }
@@ -532,6 +542,133 @@
             background: var(--surface);
             border-bottom: 1px solid var(--border);
             flex-shrink: 0;
+        }
+        
+        /* ========== 查单词 Tab ========== */
+        .search-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            overflow: hidden;
+            min-height: 0;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(254, 44, 85, 0.1);
+        }
+        
+        .search-btn {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.15s, transform 0.1s;
+        }
+        
+        .search-btn svg {
+            display: block;
+        }
+        
+        .search-btn:active {
+            opacity: 0.8;
+            transform: scale(0.95);
+        }
+        
+        .search-status {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
+        
+        .search-results {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .search-result-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .search-result-item:active {
+            transform: scale(0.98);
+            border-color: var(--primary);
+        }
+        
+        .search-result-word {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .search-result-meaning {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        
+        .search-result-textbook {
+            font-size: 0.75rem;
+            color: var(--primary);
+            background: rgba(254, 44, 85, 0.08);
+            padding: 2px 8px;
+            border-radius: 8px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+        
+        .search-result-left {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .search-no-results {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 40px 20px;
+            font-size: 0.95rem;
         }
         
         .grammar-toc-btn {
