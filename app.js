@@ -1500,22 +1500,32 @@ function parseWordJson(jsonStr) {
         function toggleSyllabify(el, wordText, isPhrase) {
             if (isPhrase) return;
             
-            if (el.classList.contains('split') || el.classList.contains('splitting')) {
-                // 合拢
+            if (el.classList.contains('split')) {
+                // 合拢：gap 收拢 + 点淡出
                 el.classList.remove('split');
-                el.classList.add('merging');
+                el.style.columnGap = '0';
+                el.querySelectorAll('.syl-dot').forEach(d => d.style.opacity = '0');
                 setTimeout(() => {
                     el.textContent = wordText;
-                    el.classList.remove('merging', 'split');
-                }, 200);
+                    el.style.columnGap = '';
+                }, 300);
+            } else if (el.classList.contains('merging')) {
+                return;
             } else {
-                // 分割
-                el.classList.add('splitting');
-                setTimeout(() => {
-                    el.innerHTML = getSyllabifiedHTML(wordText);
-                    el.classList.remove('splitting');
-                    el.classList.add('split');
-                }, 200);
+                const syls = syllabifyWord(wordText);
+                if (syls.length <= 1) return;
+                
+                // 构建 HTML，初始状态 gap=0、点透明
+                el.innerHTML = syls.map(s => `<span class="syl-part">${s}</span>`)
+                    .join('<span class="syl-dot">·</span>');
+                el.style.columnGap = '0';
+                el.querySelectorAll('.syl-dot').forEach(d => d.style.opacity = '0');
+                
+                // 强制重排后触发过渡
+                void el.offsetWidth;
+                el.style.columnGap = '0.2em';
+                el.querySelectorAll('.syl-dot').forEach(d => d.style.opacity = '1');
+                el.classList.add('split');
             }
         }
         
