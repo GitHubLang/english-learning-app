@@ -490,6 +490,8 @@ function parseWordJson(jsonStr) {
                 ttsAudio = null;
             }
             ttsQueue = [];
+            isPlaying = false;
+            clearTimeout(playTimeout);
         }
         
         // 使用 Edge TTS 播放文本，返回 Promise（播放完成后 resolve）
