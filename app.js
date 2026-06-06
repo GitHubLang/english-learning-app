@@ -1441,24 +1441,28 @@ function parseWordJson(jsonStr) {
             ).join('<span class="syl-dot">·</span>');
         }
         
-        function toggleSyllabify() {
-            const el = document.getElementById('quizWord');
-            isSyllabified = !isSyllabified;
+        function isPhraseWord(wordObj) {
+            return wordObj && (wordObj.textbook_id === 82 || wordObj.book_name === 'PhrasesAll');
+        }
+        
+        function toggleSyllabify(el, wordText, isPhrase) {
+            if (isPhrase) return;
             
-            if (isSyllabified) {
-                el.classList.add('splitting');
-                // 等分割动画后再替换内容
-                setTimeout(() => {
-                    el.innerHTML = getSyllabifiedHTML(quizWordText);
-                    el.classList.remove('splitting');
-                    el.classList.add('split');
-                }, 200);
-            } else {
+            if (el.classList.contains('split') || el.classList.contains('splitting')) {
+                // 合拢
                 el.classList.remove('split');
                 el.classList.add('merging');
                 setTimeout(() => {
-                    el.textContent = quizWordText;
-                    el.classList.remove('merging');
+                    el.textContent = wordText;
+                    el.classList.remove('merging', 'split');
+                }, 200);
+            } else {
+                // 分割
+                el.classList.add('splitting');
+                setTimeout(() => {
+                    el.innerHTML = getSyllabifiedHTML(wordText);
+                    el.classList.remove('splitting');
+                    el.classList.add('split');
                 }, 200);
             }
         }

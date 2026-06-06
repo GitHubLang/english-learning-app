@@ -65,7 +65,7 @@
             <div class="tab-content active" id="tab-learn">
                 <div class="word-card" id="wordCard" ontouchstart="wordCardTouchStart(event)" ontouchmove="wordCardTouchMove(event)" ontouchend="wordCardTouchEnd(event)">
                     <div class="word-main">
-                        <div class="word-text" id="wordText">点击加载</div>
+                        <div class="word-text" id="wordText" onclick="toggleSyllabify(this, currentWord?.word || '', isPhraseWord(currentWord))">点击加载</div>
                         <div class="word-phonetic" id="wordPhonetic"></div>
                         <div class="word-meaning" id="wordMeaning"></div>
                         <div class="word-example" id="wordExample"></div>
@@ -84,7 +84,7 @@
                     </div>
                 </div>
                 <div class="quiz-card" id="quizCard">
-                    <div class="quiz-word" id="quizWord" onclick="toggleSyllabify()">点击开始</div>
+                    <div class="quiz-word" id="quizWord" onclick="toggleSyllabify(this, quizWordText, isPhraseWord(quizCurrentWord))">点击开始</div>
                     <button class="quiz-play-btn" id="quizPlayBtn" onclick="playQuizWord()">🔊</button>
                     <div class="quiz-options" id="quizOptions"></div>
                 </div>

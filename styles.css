@@ -379,6 +379,42 @@
             font-size: 3rem;
             font-weight: 700;
             margin-bottom: 10px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s, letter-spacing 0.3s;
+        }
+        
+        .word-text:active {
+            transform: scale(0.95);
+        }
+        
+        .word-text.splitting,
+        .quiz-word.splitting {
+            animation: wordSplitOut 0.2s ease forwards;
+        }
+        
+        .word-text.merging,
+        .quiz-word.merging {
+            animation: wordMergeIn 0.2s ease forwards;
+        }
+        
+        .word-text.split,
+        .quiz-word.split {
+            letter-spacing: 0.04em;
+        }
+        
+        .word-text.split .syl-part,
+        .quiz-word.split .syl-part {
+            display: inline-block;
+            animation: sylPop 0.35s ease both;
+        }
+        
+        .word-text.split .syl-dot,
+        .quiz-word.split .syl-dot {
+            display: inline;
+            color: var(--primary);
+            font-weight: bold;
+            animation: dotFade 0.3s ease both;
         }
         
         .word-phonetic {
@@ -468,30 +504,6 @@
         
         .quiz-word:active {
             transform: scale(0.95);
-        }
-        
-        .quiz-word.splitting {
-            animation: wordSplitOut 0.2s ease forwards;
-        }
-        
-        .quiz-word.merging {
-            animation: wordMergeIn 0.2s ease forwards;
-        }
-        
-        .quiz-word.split {
-            letter-spacing: 0.04em;
-        }
-        
-        .quiz-word.split .syl-part {
-            display: inline-block;
-            animation: sylPop 0.35s ease both;
-        }
-        
-        .quiz-word.split .syl-dot {
-            display: inline;
-            color: var(--primary);
-            font-weight: bold;
-            animation: dotFade 0.3s ease both;
         }
         
         @keyframes wordSplitOut {
