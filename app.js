@@ -1413,6 +1413,16 @@ function parseWordJson(jsonStr) {
                 'middle':['mid','dle'],'noodle':['noo','dle'],'candle':['can','dle'],
                 'handle':['han','dle'],'puzzle':['puz','zle'],'drizzle':['driz','zle'],
                 'frazzle':['fraz','zle'],'grizzle':['griz','zle'],
+                'beastly':['beast','ly'],'angry':['an','gry'],'hungry':['hun','gry'],
+                'country':['coun','try'],'entry':['en','try'],'industry':['in','dus','try'],
+                'extra':['ex','tra'],'extract':['ex','tract'],'extreme':['ex','treme'],
+                'express':['ex','press'],'explain':['ex','plain'],'explore':['ex','plore'],
+                'simple':['sim','ple'],'sample':['sam','ple'],'example':['ex','am','ple'],
+                'temple':['tem','ple'],'dimple':['dim','ple'],'pimple':['pim','ple'],
+                'couple':['cou','ple'],'triple':['tri','ple'],'quadruple':['quad','ru','ple'],
+                'trouble':['trou','ble'],'double':['dou','ble'],
+                'scribble':['scrib','ble'],'cobble':['cob','ble'],'hobble':['hob','ble'],
+                'wobble':['wob','ble'],'gobble':['gob','ble'],'bobble':['bob','ble'],
             };
             const lc = word.toLowerCase();
             if (exc[lc]) return exc[lc];
@@ -1448,11 +1458,20 @@ function parseWordJson(jsonStr) {
                 }
             }
             
-            // 3. VCCV / VCV
+            // 3. VCCV / VCV / VCCCV
             for (let i = 2; i < n; i++) {
                 if (!isV[i-1] && isV[i]) {
-                    if (i >= 3 && !isV[i-2] && isV[i-3]) sp.add(i - 1);
-                    else if (isV[i-2]) sp.add(i - 1);
+                    if (i >= 3 && !isV[i-2] && isV[i-3]) {
+                        // VCCV: 元音-辅-辅-元音 → 两辅音间切
+                        sp.add(i - 1);
+                    } else if (i >= 4 && !isV[i-2] && !isV[i-3] && isV[i-4]) {
+                        // VCCCV: 元音-辅-辅-辅-元音 → 第二个辅音后切
+                        // 如 beast·ly, ang·ry, count·try
+                        sp.add(i - 2);
+                    } else if (isV[i-2]) {
+                        // VCV: 元音-辅-元音 → 辅音前切
+                        sp.add(i - 1);
+                    }
                 }
             }
             
