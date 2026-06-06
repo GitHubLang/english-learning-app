@@ -1444,7 +1444,8 @@ function parseWordJson(jsonStr) {
                 }
             }
             
-            // 2. 后缀
+            // 2. 后缀（先标出后缀范围，VCCV/VCV 不切进去）
+            let suffixStart = n;  // 后缀起始位置
             const suf = ['tion','sion','ture','sure','cious','tious',
                 'cial','tial','gue','que','able','ible','ment','ness',
                 'ling','ding','cing','ging','ping','ting','zing',
@@ -1454,22 +1455,20 @@ function parseWordJson(jsonStr) {
                 'ly','ty','gy','ry','ny','my','by','ic','al','en','el','le'];
             for (const s of suf) {
                 if (lc.endsWith(s) && lc.length > s.length + 2 && !sp.has(n - s.length)) {
-                    sp.add(n - s.length); break;
+                    sp.add(n - s.length);
+                    suffixStart = n - s.length;
+                    break;
                 }
             }
             
-            // 3. VCCV / VCV / VCCCV
-            for (let i = 2; i < n; i++) {
+            // 3. VCCV / VCV / VCCCV（不跨后缀边界）
+            for (let i = 2; i < Math.min(n, suffixStart); i++) {
                 if (!isV[i-1] && isV[i]) {
                     if (i >= 3 && !isV[i-2] && isV[i-3]) {
-                        // VCCV: 元音-辅-辅-元音 → 两辅音间切
                         sp.add(i - 1);
                     } else if (i >= 4 && !isV[i-2] && !isV[i-3] && isV[i-4]) {
-                        // VCCCV: 元音-辅-辅-辅-元音 → 第二个辅音后切
-                        // 如 beast·ly, ang·ry, count·try
                         sp.add(i - 2);
                     } else if (isV[i-2]) {
-                        // VCV: 元音-辅-元音 → 辅音前切
                         sp.add(i - 1);
                     }
                 }
@@ -1501,28 +1500,33 @@ function parseWordJson(jsonStr) {
             if (isPhrase) return;
             
             if (el.classList.contains('split')) {
-                // 合拢：gap 收拢 + 点淡出
+                // 合拢：gap 收至 0 + 点淡出，过渡结束后清 span
                 el.classList.remove('split');
                 el.style.columnGap = '0';
                 el.querySelectorAll('.syl-dot').forEach(d => d.style.opacity = '0');
-                setTimeout(() => {
+                // transitionend 后替换为纯文本（修复 span 间隙问题）
+                const onEnd = (e) => {
+                    if (e.propertyName !== 'column-gap') return;
+                    el.removeEventListener('transitionend', onEnd);
                     el.textContent = wordText;
-                    el.style.columnGap = '';
-                }, 300);
-            } else if (el.classList.contains('merging')) {
-                return;
+                };
+                el.addEventListener('transitionend', onEnd);
+            } else if (el.querySelector('.syl-part')) {
+                // 已有 span 结构（之前合拢过），直接拉开
+                el.style.columnGap = '0.2em';
+                el.querySelectorAll('.syl-dot').forEach(d => d.style.opacity = '1');
+                el.classList.add('split');
             } else {
                 const syls = syllabifyWord(wordText);
                 if (syls.length <= 1) return;
                 
-                // 构建 HTML，初始状态 gap=0、点透明
+                // 首次分割：构建 span 结构
                 el.innerHTML = syls.map(s => `<span class="syl-part">${s}</span>`)
                     .join('<span class="syl-dot">·</span>');
                 el.style.columnGap = '0';
                 el.querySelectorAll('.syl-dot').forEach(d => d.style.opacity = '0');
-                
-                // 强制重排后触发过渡
                 void el.offsetWidth;
+                
                 el.style.columnGap = '0.2em';
                 el.querySelectorAll('.syl-dot').forEach(d => d.style.opacity = '1');
                 el.classList.add('split');
