@@ -1450,7 +1450,6 @@ function parseWordJson(jsonStr) {
             let suffixStart = n;  // 后缀起始位置
             const suf = ['tion','sion','ture','sure','cious','tious',
                 'cial','tial','gue','que','able','ible','ment','ness',
-                'ling','ding','cing','ging','ping','ting','zing',
                 'tle','dle','gle','cle','ble','ple','fle','zle',
                 'ing','age','ive','ize','ify','ate','ise',
                 'ful','ous','ish','ial','ual','ed','es','er','or',
