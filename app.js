@@ -120,6 +120,8 @@ function parseWordJson(jsonStr) {
         let quizHasWrongAttempt = false;  // 当前单词是否有过错误选择
         let isPlaying = false;
         let playTimeout = null;
+        let ttsAudio = null;  // 当前TTS音频对象
+        let ttsQueue = [];    // TTS播放队列
         let wrongWords = [];
         let grammarList = [];
         let is_history = false;
@@ -479,43 +481,71 @@ function parseWordJson(jsonStr) {
             return /[\u4e00-\u9fa5]/.test(text);
         }
         
-        // 只读单词，不读词性
-        function speakWordOnly(text) {
-            speechSynthesis.cancel();
-            const utt = new SpeechSynthesisUtterance(text);
-            utt.lang = 'en-US';
-            utt.rate = 0.8;
-            speechSynthesis.speak(utt);
+        // ---- Edge TTS 播放 - 替代浏览器 speechSynthesis ----
+        
+        // 停止当前 TTS 播放
+        function cancelTTS() {
+            if (ttsAudio) {
+                ttsAudio.pause();
+                ttsAudio = null;
+            }
+            ttsQueue = [];
         }
         
-        // 通用speak函数，过滤词性标记，自动检测语言
+        // 使用 Edge TTS 播放文本，返回 Promise（播放完成后 resolve）
+        function playTTS(text, lang) {
+            return new Promise((resolve) => {
+                if (!text) { resolve(); return; }
+                // 过滤词性标记
+                const cleaned = text.replace(/\b(adj|adv|v\.?|n\.?|adj\.?|adv\.?|conj\.?|prep\.?|pron\.?|int\.?|aux\.?|modal\.?|det\.?)\b/gi, '').trim();
+                const finalText = cleaned || text;
+                const audio = new Audio(`/api/tts?text=${encodeURIComponent(finalText)}&lang=${lang || 'en'}`);
+                audio.volume = 1.0;
+                ttsAudio = audio;
+                audio.onended = () => {
+                    if (ttsAudio === audio) ttsAudio = null;
+                    resolve();
+                };
+                audio.onerror = () => {
+                    if (ttsAudio === audio) ttsAudio = null;
+                    resolve();  // 出错不阻塞
+                };
+                audio.play().catch(() => {
+                    if (ttsAudio === audio) ttsAudio = null;
+                    resolve();
+                });
+            });
+        }
+        
+        // 不等待的快捷播放
         function speak(text) {
-            if (!text) return;
-            // 过滤掉词性标记如 adj., v., n., adv. 等
-            const cleaned = text.replace(/\b(adj|adv|v\.?|n\.?|adj\.?|adv\.?|conj\.?|prep\.?|pron\.?|int\.?|aux\.?|modal\.?|det\.?)\b/gi, '').trim();
-            const utt = new SpeechSynthesisUtterance(cleaned || text);
-            // 自动检测语言：中文用zh-CN，英文用en-US
-            utt.lang = isChinese(cleaned || text) ? 'zh-CN' : 'en-US';
-            utt.rate = 0.8;
-            speechSynthesis.speak(utt);
+            cancelTTS();
+            playTTS(text, isChinese(text) ? 'zh' : 'en');
         }
         
+        // 只读英文单词（不含释义）
+        function speakWordOnly(text) {
+            cancelTTS();
+            playTTS(text, 'en');
+        }
+        
+        // 切换播放/停止
         function togglePlay() {
             if (isPlaying) {
-                // 如果正在播放，点击直接停止
-                speechSynthesis.cancel();
+                cancelTTS();
                 isPlaying = false;
                 clearTimeout(playTimeout);
             } else {
-                // 如果没在播放，点击从头开始播放
                 autoPlay();
             }
         }
         
+        // 单词自动朗读：依次播放 单词 → 释义 → 例句
+        // 一次性创建所有 Audio 对象，避免移动端 autoplay 策略拦截
         function autoPlay() {
             if (!currentWord) return;
             
-            // 如果有word_json，用parseWordJson解析
+            // 解析 word_json（如果有）
             let word = currentWord;
             if (currentWord.word_json) {
                 const parsed = parseWordJson(currentWord.word_json);
@@ -524,30 +554,77 @@ function parseWordJson(jsonStr) {
                 }
             }
             
-            // 获取第一个例句
-            const firstExample = (word.examples && word.examples.length > 0) ? word.examples[0].en : '';
+            // 获取第一个例句（英文 + 中文翻译）
+            let firstExample = '';
+            let exampleCn = '';
+            if (word.examples && word.examples.length > 0) {
+                firstExample = word.examples[0].en || '';
+                exampleCn = word.examples[0].cn || '';
+            }
             
-            clearTimeout(playTimeout);  // 清除之前排队的播放
-            speechSynthesis.cancel();
+            cancelTTS();
+            clearTimeout(playTimeout);
             isPlaying = true;
-            let step = 0;
-            const steps = [
-                () => speakWordOnly(word.word || ''),
-                () => { step = 1; speak(word.meaning || ''); },
-                () => { step = 2; speak(firstExample); },
-                () => { isPlaying = false; }
-            ];
             
-            function run() {
-                if (!isPlaying || step >= steps.length) {
+            // 准备要播放的文本列表
+            const items = [];
+            if (word.word) items.push({ text: word.word, lang: 'en' });
+            if (word.meaning) items.push({ text: word.meaning, lang: isChinese(word.meaning) ? 'zh' : 'en' });
+            if (firstExample) items.push({ text: firstExample, lang: 'en' });
+            if (exampleCn) items.push({ text: exampleCn, lang: 'zh' });
+            
+            if (items.length === 0) {
+                isPlaying = false;
+                return;
+            }
+            
+            // 预创建所有 Audio 对象（一次性，在用户手势上下文内）
+            const audios = items.map(item => {
+                const cleaned = item.text.replace(/\b(adj|adv|v\.?|n\.?|adj\.?|adv\.?|conj\.?|prep\.?|pron\.?|int\.?|aux\.?|modal\.?|det\.?)\b/gi, '').trim();
+                const finalText = cleaned || item.text;
+                const audio = new Audio(`/api/tts?text=${encodeURIComponent(finalText)}&lang=${item.lang}`);
+                audio.volume = 1.0;
+                audio.preload = 'auto';
+                return audio;
+            });
+            
+            // 逐一播放（用回调链，不用 async/await 跨事件循环）
+            let idx = 0;
+            function playNext() {
+                if (!isPlaying || idx >= audios.length) {
                     isPlaying = false;
                     return;
                 }
-                steps[step]();
-                step++;
-                playTimeout = setTimeout(run, 2000);
+                ttsAudio = audios[idx];
+                audios[idx].onended = () => {
+                    if (ttsAudio === audios[idx]) ttsAudio = null;
+                    idx++;
+                    if (idx < audios.length) {
+                        playTimeout = setTimeout(playNext, 0);
+                    } else {
+                        isPlaying = false;
+                    }
+                };
+                audios[idx].onerror = () => {
+                    if (ttsAudio === audios[idx]) ttsAudio = null;
+                    idx++;
+                    if (idx < audios.length) {
+                        playTimeout = setTimeout(playNext, 0);
+                    } else {
+                        isPlaying = false;
+                    }
+                };
+                audios[idx].play().catch(() => {
+                    if (ttsAudio === audios[idx]) ttsAudio = null;
+                    idx++;
+                    if (idx < audios.length) {
+                        playTimeout = setTimeout(playNext, 0);
+                    } else {
+                        isPlaying = false;
+                    }
+                });
             }
-            run();
+            playNext();
         }
         
         function nextWord() {
@@ -973,7 +1050,7 @@ function parseWordJson(jsonStr) {
         
         // 播放发音（有道API）
         function playPronunciation(word, type) {
-            speechSynthesis.cancel();  // 打断当前TTS
+            cancelTTS();  // 打断当前TTS
             const audio = new Audio();
             audio.volume = 1.0;  // 最大音量
             audio.src = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=${type === 'us' ? 2 : 1}`;
@@ -1690,7 +1767,7 @@ function parseWordJson(jsonStr) {
         // Tab switching
         function switchTab(tab) {
             // 停止当前音频
-            speechSynthesis.cancel();
+            cancelTTS();
             isPlaying = false;
             
             document.querySelectorAll('.nav-item').forEach((el, i) => {

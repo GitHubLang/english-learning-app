@@ -1,10 +1,13 @@
-from flask import Flask, request, jsonify, g, send_from_directory
+from flask import Flask, request, jsonify, g, send_from_directory, send_file
 import mysql.connector
 from mysql.connector import pooling
 from datetime import datetime
 import hashlib
 import jwt
 import time
+import asyncio
+import edge_tts
+import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'english-learning-secret-key-2024'
@@ -13,7 +16,7 @@ app.config['SECRET_KEY'] = 'english-learning-secret-key-2024'
 db_pool = pooling.MySQLConnectionPool(
     pool_name="english_pool",
     pool_size=5,
-    host='127.0.0.1',
+    host='192.168.71.189',
     user='root',
     password='notes123',
     database='english_db'
@@ -1180,6 +1183,46 @@ def index():
 @app.route('/<path:filename>')
 def static_files(filename):
     return send_from_directory('.', filename)
+
+# TTS 缓存目录
+TTS_CACHE_DIR = os.path.join(os.path.dirname(__file__), 'cached_tts')
+os.makedirs(TTS_CACHE_DIR, exist_ok=True)
+
+TTS_VOICES = {
+    'en': 'en-US-JennyNeural',
+    'zh': 'zh-CN-XiaoxiaoNeural',
+}
+
+@app.route('/api/tts')
+def tts():
+    text = request.args.get('text', '')
+    lang = request.args.get('lang', 'en')
+    if not text:
+        return 'Missing text', 400
+
+    voice = TTS_VOICES.get(lang, 'en-US-JennyNeural')
+
+    # 生成缓存 key（文本+语音）
+    cache_key = hashlib.md5(f"{text}:{voice}".encode()).hexdigest()
+    cache_path = os.path.join(TTS_CACHE_DIR, f"{cache_key}.mp3")
+
+    # 命中缓存直接返回
+    if os.path.exists(cache_path):
+        return send_file(cache_path, mimetype='audio/mpeg')
+
+    # 调用 edge-tts 生成
+    async def _gen():
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(cache_path)
+
+    try:
+        asyncio.run(_gen())
+    except Exception as e:
+        print(f"TTS 生成失败: {e}")
+        return 'TTS failed', 500
+
+    return send_file(cache_path, mimetype='audio/mpeg')
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8082, debug=False)
