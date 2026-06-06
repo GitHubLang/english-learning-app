@@ -1370,7 +1370,11 @@ function parseWordJson(jsonStr) {
                 }
             }
             
-            document.getElementById('quizWord').textContent = word.word || '';
+            quizWordText = word.word || '';
+            isSyllabified = false;
+            const qwEl = document.getElementById('quizWord');
+            qwEl.textContent = quizWordText;
+            qwEl.className = 'quiz-word';
             
             // 使用后端预生成的选项（1个正确+3个错误）
             const options = word.options || [word.meaning];
@@ -1386,6 +1390,76 @@ function parseWordJson(jsonStr) {
                 updateWordCount(quizWrongWordCount);
             } else {
                 updateWordCount(quizMinCountWordCount);
+            }
+        }
+        
+        // ========== 音节分割动画 ==========
+        let isSyllabified = false;
+        let quizWordText = '';
+        
+        function syllabifyWord(word) {
+            if (!word || word.length <= 2) return [word];
+            
+            const vowels = 'aeiouyAEIOUY';
+            const chars = [...word];
+            const isV = chars.map(c => vowels.includes(c));
+            
+            // 扫描音节边界
+            const bounds = [0];
+            for (let i = 2; i < chars.length; i++) {
+                if (isV[i] && !isV[i-1]) {
+                    if (!isV[i-2]) {
+                        // VCCV → 在两辅音之间切: VC-CV
+                        bounds.push(i - 1);
+                    } else {
+                        // VCV → 切在辅音前: V-CV
+                        bounds.push(i - 1);
+                    }
+                }
+            }
+            bounds.push(chars.length);
+            
+            // 去重
+            const unique = [bounds[0]];
+            for (let i = 1; i < bounds.length; i++) {
+                if (bounds[i] !== bounds[i-1]) unique.push(bounds[i]);
+            }
+            
+            const syllables = [];
+            for (let i = 0; i < unique.length - 1; i++) {
+                const s = word.slice(unique[i], unique[i+1]);
+                if (s) syllables.push(s);
+            }
+            return syllables.length > 0 ? syllables : [word];
+        }
+        
+        function getSyllabifiedHTML(word) {
+            const syllables = syllabifyWord(word);
+            if (syllables.length <= 1) return word;
+            return syllables.map((s, i) => 
+                `<span class="syl-part" style="animation-delay:${i * 0.06}s">${s}</span>`
+            ).join('<span class="syl-dot">·</span>');
+        }
+        
+        function toggleSyllabify() {
+            const el = document.getElementById('quizWord');
+            isSyllabified = !isSyllabified;
+            
+            if (isSyllabified) {
+                el.classList.add('splitting');
+                // 等分割动画后再替换内容
+                setTimeout(() => {
+                    el.innerHTML = getSyllabifiedHTML(quizWordText);
+                    el.classList.remove('splitting');
+                    el.classList.add('split');
+                }, 200);
+            } else {
+                el.classList.remove('split');
+                el.classList.add('merging');
+                setTimeout(() => {
+                    el.textContent = quizWordText;
+                    el.classList.remove('merging');
+                }, 200);
             }
         }
         

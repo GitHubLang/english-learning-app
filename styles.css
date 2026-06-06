@@ -461,6 +461,71 @@
             font-size: 2.5rem;
             font-weight: 600;
             margin-bottom: 30px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s, letter-spacing 0.3s;
+        }
+        
+        .quiz-word:active {
+            transform: scale(0.95);
+        }
+        
+        .quiz-word.splitting {
+            animation: wordSplitOut 0.2s ease forwards;
+        }
+        
+        .quiz-word.merging {
+            animation: wordMergeIn 0.2s ease forwards;
+        }
+        
+        .quiz-word.split {
+            letter-spacing: 0.04em;
+        }
+        
+        .quiz-word.split .syl-part {
+            display: inline-block;
+            animation: sylPop 0.35s ease both;
+        }
+        
+        .quiz-word.split .syl-dot {
+            display: inline;
+            color: var(--primary);
+            font-weight: bold;
+            animation: dotFade 0.3s ease both;
+        }
+        
+        @keyframes wordSplitOut {
+            0% { opacity: 1; transform: scale(1); letter-spacing: 0; }
+            100% { opacity: 0; transform: scale(0.8); letter-spacing: -0.1em; }
+        }
+        
+        @keyframes wordMergeIn {
+            0% { opacity: 0; transform: scale(0.8); letter-spacing: 0.1em; }
+            100% { opacity: 1; transform: scale(1); letter-spacing: 0; }
+        }
+        
+        @keyframes sylPop {
+            0% { opacity: 0; transform: translateY(8px) scale(0.7); }
+            50% { transform: translateY(-3px) scale(1.05); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        @keyframes dotFade {
+            0% { opacity: 0; transform: scale(0); }
+            60% { opacity: 1; transform: scale(1.3); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        .quiz-play-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            margin-bottom: 40px;
         }
         
         .quiz-play-btn {

@@ -747,63 +747,39 @@ def get_wrong_words_with_options(textbook_id):
 @app.route('/api/textbooks/<int:textbook_id>/quiz-words', methods=['GET'])
 @token_required
 def get_quiz_words(textbook_id):
-    """获取用于背单词的单词（一次只查一条）
-    返回：当前单词 + 背诵次数最小的单词数量
+    """获取背单词：从已学过的单词中取一条（背诵次数最少的）
+    
+    优化：INNER JOIN play_records 只取已学过的行，不扫描全表
     """
     import random
-    
     db = get_db()
     cursor = db.cursor(dictionary=True)
     
-    # 先计算背诵次数最小的单词数量（稳定值）
-    cursor.execute("""
-        SELECT MIN(COALESCE(wqr.quiz_count, 0)) as min_count
-        FROM words w
-        LEFT JOIN word_play_records wpr ON w.id = wpr.word_id 
-            AND wpr.user_id = %s
-        LEFT JOIN word_quiz_records wqr ON w.id = wqr.word_id 
-            AND wqr.user_id = %s AND wqr.textbook_id = %s
-        WHERE w.textbook_id = %s AND COALESCE(wpr.play_count, 0) > 0
-    """, (g.user_id, g.user_id, textbook_id, textbook_id))
-    min_count_row = cursor.fetchone()
-    min_quiz_count = min_count_row['min_count'] if min_count_row and min_count_row['min_count'] else 0
-    
-    # 计算背诵次数最小的单词数量
-    cursor.execute("""
-        SELECT COUNT(*) as cnt
-        FROM words w
-        LEFT JOIN word_play_records wpr ON w.id = wpr.word_id 
-            AND wpr.user_id = %s
-        LEFT JOIN word_quiz_records wqr ON w.id = wqr.word_id 
-            AND wqr.user_id = %s AND wqr.textbook_id = %s
-        WHERE w.textbook_id = %s AND COALESCE(wpr.play_count, 0) > 0
-        AND COALESCE(wqr.quiz_count, 0) = %s
-    """, (g.user_id, g.user_id, textbook_id, textbook_id, min_quiz_count))
-    min_quiz_word_count = cursor.fetchone()['cnt']
-    
-    # 随机获取一条背诵次数最少的单词
+    # 只取已学过的单词 + 它们的背诵记录（INNER JOIN 只扫匹配行）
     cursor.execute("""
         SELECT w.id, w.textbook_id, w.book_name, w.word, w.word_json,
                COALESCE(wqr.quiz_count, 0) as quiz_count
         FROM words w
-        LEFT JOIN word_play_records wpr ON w.id = wpr.word_id 
-            AND wpr.user_id = %s
+        INNER JOIN word_play_records wpr ON w.id = wpr.word_id 
+            AND wpr.user_id = %s AND wpr.textbook_id = %s
         LEFT JOIN word_quiz_records wqr ON w.id = wqr.word_id 
             AND wqr.user_id = %s AND wqr.textbook_id = %s
-        WHERE w.textbook_id = %s AND COALESCE(wpr.play_count, 0) > 0
-        AND COALESCE(wqr.quiz_count, 0) = %s
-        ORDER BY RAND()
-        LIMIT 1
-    """, (g.user_id, g.user_id, textbook_id, textbook_id, min_quiz_count))
+        WHERE w.textbook_id = %s
+    """, (g.user_id, textbook_id, g.user_id, textbook_id, textbook_id))
     
-    word_row = cursor.fetchone()
+    rows = cursor.fetchall()
     
-    if not word_row:
+    if not rows:
         cursor.close()
         db.close()
         return jsonify({'word': None, 'min_quiz_word_count': 0})
     
-    # 解析单词JSON
+    # Python 侧计算最小背诵次数（数据量小，毫秒级）
+    min_quiz_count = min(r['quiz_count'] for r in rows)
+    min_words = [r for r in rows if r['quiz_count'] == min_quiz_count]
+    
+    word_row = random.choice(min_words)
+    
     parsed = parse_word_json(word_row['word_json'])
     if not parsed:
         cursor.close()
@@ -815,89 +791,80 @@ def get_quiz_words(textbook_id):
     parsed['quiz_count'] = word_row['quiz_count']
     parsed['word_json'] = word_row['word_json']
     
-    # 获取该单词的meaning用于生成选项
+    # 选项：RAND() 概率采样（不排序，快），小课本全扫
     correct_meaning = parsed.get('meaning', '')
+    seen = {correct_meaning}
+    options = [correct_meaning]
     
-    # 查询该课本的所有单词，解析出meaning用于生成错误选项
-    cursor.execute("""
-        SELECT word_json FROM words 
-        WHERE textbook_id = %s AND word_json IS NOT NULL
-    """, (textbook_id,))
-    all_word_json = cursor.fetchall()
+    # word_json 列是 NOT NULL 约束，不需要 IS NOT NULL 检查
+    cursor.execute("SELECT COUNT(*) as cnt FROM words WHERE textbook_id = %s", (textbook_id,))
+    wc = cursor.fetchone()['cnt']
+    if wc < 500:
+        cursor.execute("SELECT word_json FROM words WHERE textbook_id = %s", (textbook_id,))
+    else:
+        cursor.execute("""
+            SELECT word_json FROM words 
+            WHERE textbook_id = %s
+            AND RAND() < 0.05
+            LIMIT 500
+        """, (textbook_id,))
     
-    # 解析所有meaning
-    all_meanings = []
-    for row in all_word_json:
+    for row in cursor.fetchall():
         p = parse_word_json(row['word_json'])
-        if p and p.get('meaning') and p['meaning'] != correct_meaning:
-            all_meanings.append(p['meaning'])
+        if p and p.get('meaning') and p['meaning'] not in seen:
+            seen.add(p['meaning'])
+            options.append(p['meaning'])
+            if len(options) >= 4:
+                break
     
-    # 去重并随机打乱
-    all_meanings = list(set(all_meanings))
-    random.shuffle(all_meanings)
-    
-    # 生成3个错误选项
-    options = [correct_meaning] + all_meanings[:3]
+    while len(options) < 4:
+        options.append('—')
     random.shuffle(options)
-    parsed['options'] = options
+    parsed['options'] = options[:4]
     
     cursor.close()
     db.close()
     return jsonify({
         'word': parsed,
         'min_quiz_count': min_quiz_count,
-        'min_quiz_word_count': min_quiz_word_count
+        'min_quiz_word_count': len(min_words)
     })
 
 @app.route('/api/textbooks/<int:textbook_id>/wrong-word', methods=['GET'])
 @token_required
 def get_wrong_word(textbook_id):
-    """获取一条错题复习单词（随机）
+    """获取一条错题复习单词
     差值 = 答错次数 - 复习答对次数
     """
+    import random
     db = get_db()
     cursor = db.cursor(dictionary=True)
     
-    # 先计算错题数量（稳定值）
-    cursor.execute("""
-        SELECT COUNT(*) as cnt
-        FROM words w
-        LEFT JOIN word_wrong_counts wwc ON w.id = wwc.word_id 
-            AND wwc.user_id = %s AND wwc.textbook_id = %s
-        LEFT JOIN word_wrong_review_records wwrc ON w.id = wwrc.word_id 
-            AND wwrc.user_id = %s AND wwrc.textbook_id = %s
-        WHERE w.textbook_id = %s 
-            AND COALESCE(wwc.wrong_count, 0) > 0
-            AND (COALESCE(wwc.wrong_count, 0) - COALESCE(wwrc.correct_count, 0)) > 0
-    """, (g.user_id, textbook_id, g.user_id, textbook_id, textbook_id))
-    wrong_word_count = cursor.fetchone()['cnt']
-    
-    # 随机获取一条差值>0的单词
+    # INNER JOIN wrong_counts：只取有错题的单词
     cursor.execute("""
         SELECT w.id, w.textbook_id, w.book_name, w.word, w.word_json,
                COALESCE(wwc.wrong_count, 0) as wrong_count,
                COALESCE(wwrc.correct_count, 0) as correct_count,
                (COALESCE(wwc.wrong_count, 0) - COALESCE(wwrc.correct_count, 0)) as diff_count
         FROM words w
-        LEFT JOIN word_wrong_counts wwc ON w.id = wwc.word_id 
+        INNER JOIN word_wrong_counts wwc ON w.id = wwc.word_id 
             AND wwc.user_id = %s AND wwc.textbook_id = %s
         LEFT JOIN word_wrong_review_records wwrc ON w.id = wwrc.word_id 
             AND wwrc.user_id = %s AND wwrc.textbook_id = %s
         WHERE w.textbook_id = %s 
-            AND COALESCE(wwc.wrong_count, 0) > 0
             AND (COALESCE(wwc.wrong_count, 0) - COALESCE(wwrc.correct_count, 0)) > 0
-        ORDER BY RAND()
-        LIMIT 1
     """, (g.user_id, textbook_id, g.user_id, textbook_id, textbook_id))
     
-    word_row = cursor.fetchone()
+    rows = cursor.fetchall()
+    wrong_word_count = len(rows)
     
-    if not word_row:
+    if not rows:
         cursor.close()
         db.close()
         return jsonify({'word': None, 'wrong_word_count': 0})
     
-    # 解析单词JSON
+    word_row = random.choice(rows)
+    
     parsed = parse_word_json(word_row['word_json'])
     if not parsed:
         cursor.close()
@@ -911,46 +878,35 @@ def get_wrong_word(textbook_id):
     parsed['diff_count'] = word_row['diff_count']
     parsed['word_json'] = word_row['word_json']
     
-    # 获取该单词的meaning用于生成选项
+    # 选项：概率采样
     correct_meaning = parsed.get('meaning', '')
+    seen = {correct_meaning}
+    options = [correct_meaning]
     
-    # 查询该课本的所有单词，解析出meaning用于生成错误选项
-    cursor.execute("""
-        SELECT word_json FROM words 
-        WHERE textbook_id = %s AND word_json IS NOT NULL
-    """, (textbook_id,))
-    all_word_json = cursor.fetchall()
+    cursor.execute("SELECT COUNT(*) as cnt FROM words WHERE textbook_id = %s", (textbook_id,))
+    wc = cursor.fetchone()['cnt']
+    if wc < 500:
+        cursor.execute("SELECT word_json FROM words WHERE textbook_id = %s", (textbook_id,))
+    else:
+        cursor.execute("""
+            SELECT word_json FROM words 
+            WHERE textbook_id = %s
+            AND RAND() < 0.05
+            LIMIT 500
+        """, (textbook_id,))
     
-    # 解析所有meaning
-    all_meanings = []
-    for row in all_word_json:
+    for row in cursor.fetchall():
         p = parse_word_json(row['word_json'])
-        if p and p.get('meaning') and p['meaning'] != correct_meaning:
-            all_meanings.append(p['meaning'])
+        if p and p.get('meaning') and p['meaning'] not in seen:
+            seen.add(p['meaning'])
+            options.append(p['meaning'])
+            if len(options) >= 4:
+                break
     
-    # 去重并随机打乱
-    import random
-    all_meanings = list(set(all_meanings))
-    random.shuffle(all_meanings)
-    
-    # 生成3个错误选项
-    options = [correct_meaning] + all_meanings[:3]
+    while len(options) < 4:
+        options.append('—')
     random.shuffle(options)
-    parsed['options'] = options
-    
-    # 计算剩余错题数量
-    cursor.execute("""
-        SELECT COUNT(*) as cnt
-        FROM words w
-        LEFT JOIN word_wrong_counts wwc ON w.id = wwc.word_id 
-            AND wwc.user_id = %s AND wwc.textbook_id = %s
-        LEFT JOIN word_wrong_review_records wwrc ON w.id = wwrc.word_id 
-            AND wwrc.user_id = %s AND wwrc.textbook_id = %s
-        WHERE w.textbook_id = %s 
-            AND COALESCE(wwc.wrong_count, 0) > 0
-            AND (COALESCE(wwc.wrong_count, 0) - COALESCE(wwrc.correct_count, 0)) > 0
-    """, (g.user_id, textbook_id, g.user_id, textbook_id, textbook_id))
-    cursor.fetchone()  # 消费结果
+    parsed['options'] = options[:4]
     
     cursor.close()
     db.close()
