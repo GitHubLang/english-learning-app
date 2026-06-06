@@ -467,8 +467,8 @@ function parseWordJson(jsonStr) {
             const example = word.examples && word.examples.length > 0 ? word.examples[0] : null;
             document.getElementById('wordExample').textContent = example ? (example.en || '') : '';
             document.getElementById('wordExampleTrans').textContent = example ? (example.cn || '') : '';
-            // 显示后自动播放
-            setTimeout(() => autoPlay(), 300);
+            // 显示后立即自动播放（不用 setTimeout，移动端需要保持用户手势上下文）
+            autoPlay();
         }
         
         function playWord() {
@@ -1172,8 +1172,8 @@ function parseWordJson(jsonStr) {
                 `<div class="quiz-option" onclick="selectOption(this, ${i}, ${JSON.stringify(opt).replace(/"/g, '&quot;')})">${opt}</div>`
             ).join('');
             
-            // Auto play
-            setTimeout(() => speak(word.word || ''), 500);
+            // Auto play（不用 setTimeout 保持用户手势）
+            speak(word.word || '');
             
             // 更新右上角剩余数量
             if (quizMode === 'wrong') {
