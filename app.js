@@ -1400,37 +1400,70 @@ function parseWordJson(jsonStr) {
         function syllabifyWord(word) {
             if (!word || word.length <= 2) return [word];
             
-            const vowels = 'aeiouyAEIOUY';
-            const chars = [...word];
-            const isV = chars.map(c => vowels.includes(c));
+            // 不规则词查表
+            const exc = {
+                'business':['busi','ness'],'knowledge':['knowl','edge'],
+                'answer':['an','swer'],'often':['of','ten'],'listen':['lis','ten'],
+                'castle':['cas','tle'],'soften':['sof','ten'],'fasten':['fas','ten'],
+                'christmas':['christ','mas'],'tongue':['tongue'],'queue':['queue'],'rhythm':['rhythm'],
+                'people':['peo','ple'],'little':['lit','tle'],'gentle':['gen','tle'],
+                'battle':['bat','tle'],'bottle':['bot','tle'],'cattle':['cat','tle'],
+                'kettle':['ket','tle'],'settle':['set','tle'],'title':['ti','tle'],
+                'subtle':['sub','tle'],'buckle':['buck','le'],'paddle':['pad','dle'],
+                'middle':['mid','dle'],'noodle':['noo','dle'],'candle':['can','dle'],
+                'handle':['han','dle'],'puzzle':['puz','zle'],'drizzle':['driz','zle'],
+                'frazzle':['fraz','zle'],'grizzle':['griz','zle'],
+            };
+            const lc = word.toLowerCase();
+            if (exc[lc]) return exc[lc];
             
-            // 扫描音节边界
-            const bounds = [0];
-            for (let i = 2; i < chars.length; i++) {
-                if (isV[i] && !isV[i-1]) {
-                    if (!isV[i-2]) {
-                        // VCCV → 在两辅音之间切: VC-CV
-                        bounds.push(i - 1);
-                    } else {
-                        // VCV → 切在辅音前: V-CV
-                        bounds.push(i - 1);
-                    }
+            const vo = 'aeiouyAEIOUY';
+            const ch = [...word];
+            const n = ch.length;
+            const isV = ch.map(c => vo.includes(c));
+            const sp = new Set([0, n]);
+            
+            // 1. 前缀
+            const pre = ['pre','pro','per','con','com','dis','mis','non','out',
+                'over','under','inter','extra','anti','ante','auto','semi',
+                'multi','micro','macro','super','ultra','trans','sub',
+                'im','in','il','ir','em','en','de','re','be','ex','un','up'];
+            for (const p of pre) {
+                if (lc.startsWith(p) && lc.length > p.length + 2 && isV[p.length]) {
+                    sp.add(p.length); break;
                 }
             }
-            bounds.push(chars.length);
             
-            // 去重
-            const unique = [bounds[0]];
-            for (let i = 1; i < bounds.length; i++) {
-                if (bounds[i] !== bounds[i-1]) unique.push(bounds[i]);
+            // 2. 后缀
+            const suf = ['tion','sion','ture','sure','cious','tious',
+                'cial','tial','gue','que','able','ible','ment','ness',
+                'ling','ding','cing','ging','ping','ting','zing',
+                'tle','dle','gle','cle','ble','ple','fle','zle',
+                'ing','age','ive','ize','ify','ate','ise',
+                'ful','ous','ish','ial','ual','ed','es','er','or',
+                'ly','ty','gy','ry','ny','my','by','ic','al','en','el','le'];
+            for (const s of suf) {
+                if (lc.endsWith(s) && lc.length > s.length + 2 && !sp.has(n - s.length)) {
+                    sp.add(n - s.length); break;
+                }
             }
             
-            const syllables = [];
-            for (let i = 0; i < unique.length - 1; i++) {
-                const s = word.slice(unique[i], unique[i+1]);
-                if (s) syllables.push(s);
+            // 3. VCCV / VCV
+            for (let i = 2; i < n; i++) {
+                if (!isV[i-1] && isV[i]) {
+                    if (i >= 3 && !isV[i-2] && isV[i-3]) sp.add(i - 1);
+                    else if (isV[i-2]) sp.add(i - 1);
+                }
             }
-            return syllables.length > 0 ? syllables : [word];
+            
+            // 排序
+            const arr = [...sp].sort((a,b)=>a-b);
+            const res = [];
+            for (let i = 0; i < arr.length-1; i++) {
+                const s = word.slice(arr[i], arr[i+1]);
+                if (s) res.push(s);
+            }
+            return res.length > 0 ? res : [word];
         }
         
         function getSyllabifiedHTML(word) {
