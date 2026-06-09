@@ -1235,16 +1235,28 @@ def tts():
 
     # 生成缓存 key（文本+语音）
     cache_key = hashlib.md5(f"{text}:{voice}".encode()).hexdigest()
-    cache_path = os.path.join(TTS_CACHE_DIR, f"{cache_key}.mp3")
 
-    # 命中缓存直接返回
-    if os.path.exists(cache_path):
-        return send_file(cache_path, mimetype='audio/mpeg')
+    # 缓存路径：优先子目录（哈希前2字符），其次根目录（旧格式兼容）
+    subdir = cache_key[:2]
+    cache_path_sub = os.path.join(TTS_CACHE_DIR, subdir, f"{cache_key}.mp3")
+    cache_path_root = os.path.join(TTS_CACHE_DIR, f"{cache_key}.mp3")
 
-    # 调用 edge-tts 生成
+    # 检查子目录缓存
+    if os.path.exists(cache_path_sub):
+        return send_file(cache_path_sub, mimetype='audio/mpeg')
+
+    # 检查根目录缓存（旧格式兼容）
+    if os.path.exists(cache_path_root):
+        return send_file(cache_path_root, mimetype='audio/mpeg')
+
+    # 确保子目录存在
+    subdir_path = os.path.join(TTS_CACHE_DIR, subdir)
+    os.makedirs(subdir_path, exist_ok=True)
+
+    # 调用 edge-tts 生成，保存到子目录
     async def _gen():
         communicate = edge_tts.Communicate(text, voice)
-        await communicate.save(cache_path)
+        await communicate.save(cache_path_sub)
 
     try:
         asyncio.run(_gen())
@@ -1252,7 +1264,7 @@ def tts():
         print(f"TTS 生成失败: {e}")
         return 'TTS failed', 500
 
-    return send_file(cache_path, mimetype='audio/mpeg')
+    return send_file(cache_path_sub, mimetype='audio/mpeg')
 
 
 if __name__ == '__main__':
