@@ -221,58 +221,46 @@ async def cache_word_batch(words, label, progress_stat, voice=VOICE_EN):
     progress_stat[0] = done
 
 
-def get_all_meanings():
-    """从 word_json 提取所有中文释义"""
-    conn = mysql.connector.connect(**DB_CONFIG)
-    cur = conn.cursor()
-    cur.execute("SELECT word_json FROM words WHERE word_json IS NOT NULL AND word_json != ''")
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-    all_meanings = set()
-    for (wj,) in rows:
-        try:
-            data = json.loads(wj)
-            content = data.get('content', {})
-            word_content = content.get('word', {}).get('content', {})
-            trans = word_content.get('trans', [])
-            for t in trans:
-                cn = (t.get('tranCn') or '').strip()
-                pos = (t.get('pos') or '').strip()
-                if cn:
-                    text = "{} {}".format(pos, cn).strip() if pos else cn
-                    all_meanings.add(text)
-        except:
-            pass
-    return list(all_meanings)
-
-
-def get_example_cn_sentences():
-    """从 word_json 提取中文例句"""
-    conn = mysql.connector.connect(**DB_CONFIG)
-    cur = conn.cursor()
-    sql = """
-        SELECT word_json FROM words
-        WHERE word_json IS NOT NULL AND word_json != ''
-    """
-    cur.execute(sql)
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
+def _extract_zh_from_word_json(rows):
+    """从 word_json 行提取中文释义和例句"""
+    meanings = set()
     sentences = set()
     for (wj,) in rows:
         try:
             data = json.loads(wj)
             content = data.get('content', {})
-            word_content = content.get('word', {}).get('content', {})
-            sdata = word_content.get('sentence', {}).get('sentences', [])
+            wc = content.get('word', {}).get('content', {})
+            trans = wc.get('trans', [])
+            for t in trans:
+                cn = (t.get('tranCn') or '').strip()
+                pos = (t.get('pos') or '').strip()
+                if cn:
+                    text = "{} {}".format(pos, cn).strip() if pos else cn
+                    meanings.add(text)
+            sdata = wc.get('sentence', {}).get('sentences', [])
             for s in sdata:
-                cn = (s.get('sCn') or '').strip()
-                if cn and len(cn) > 1:
-                    sentences.add(cn)
+                scn = (s.get('sCn') or '').strip()
+                if scn and len(scn) > 1:
+                    sentences.add(scn)
         except:
             pass
-    return list(sentences)
+    return meanings, sentences
+
+
+def get_zh_texts(book_ids=None):
+    """获取中文文本（释义+例句），可选限制课本"""
+    conn = mysql.connector.connect(**DB_CONFIG)
+    cur = conn.cursor()
+    if book_ids:
+        ids = ','.join(str(i) for i in book_ids)
+        cur.execute("SELECT word_json FROM words WHERE textbook_id IN ({}) AND word_json IS NOT NULL AND word_json != ''".format(ids))
+    else:
+        cur.execute("SELECT word_json FROM words WHERE word_json IS NOT NULL AND word_json != ''")
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    meanings, sentences = _extract_zh_from_word_json(rows)
+    return list(meanings | sentences)
 
 
 # ========== 主流程 ==========
@@ -324,17 +312,23 @@ async def main():
         progress = [0, len(all_sent_uncached), time.time()]
         await cache_word_batch(all_sent_uncached, "all-sent", progress)
 
-    # Step 4: Chinese voice (meanings + example translations)
-    log("[Step 4] Caching Chinese texts with zh voice...")
+    # Step 4a: Chinese voice for TEM-8 books (priority)
+    log("[Step 4a] Caching TEM-8 Chinese texts with zh voice (IDs={})...".format(TEM8_BOOK_IDS))
+    tem8_zh = get_zh_texts(TEM8_BOOK_IDS)
+    tem8_zh_uncached = [t for t in tem8_zh if not text_cached(t, VOICE_ZH)]
+    log("  TEM-8 Chinese total: {}, uncached: {}".format(len(tem8_zh), len(tem8_zh_uncached)))
+    if tem8_zh_uncached:
+        progress = [0, len(tem8_zh_uncached), time.time()]
+        await cache_word_batch(tem8_zh_uncached, "tem8-zh", progress, voice=VOICE_ZH)
 
-    meanings = get_all_meanings()
-    cn_sentences = get_example_cn_sentences()
-    cn_texts = list(set(meanings + cn_sentences))
-    cn_uncached = [t for t in cn_texts if not text_cached(t, VOICE_ZH)]
-    log("  Chinese total: {}, uncached: {}".format(len(cn_texts), len(cn_uncached)))
-    if cn_uncached:
-        progress = [0, len(cn_uncached), time.time()]
-        await cache_word_batch(cn_uncached, "zh-texts", progress, voice=VOICE_ZH)
+    # Step 4b: remaining Chinese voice (all books)
+    log("[Step 4b] Caching remaining Chinese texts with zh voice...")
+    all_zh = get_zh_texts()
+    all_zh_uncached = [t for t in all_zh if not text_cached(t, VOICE_ZH)]
+    log("  All Chinese total: {}, uncached: {}".format(len(all_zh), len(all_zh_uncached)))
+    if all_zh_uncached:
+        progress = [0, len(all_zh_uncached), time.time()]
+        await cache_word_batch(all_zh_uncached, "all-zh", progress, voice=VOICE_ZH)
 
     # Done
     elapsed = time.time() - start_time
