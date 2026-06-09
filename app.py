@@ -1241,13 +1241,18 @@ def tts():
     cache_path_sub = os.path.join(TTS_CACHE_DIR, subdir, f"{cache_key}.mp3")
     cache_path_root = os.path.join(TTS_CACHE_DIR, f"{cache_key}.mp3")
 
+    def _serve(path):
+        resp = send_file(path, mimetype='audio/mpeg')
+        resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        return resp
+
     # 检查子目录缓存
     if os.path.exists(cache_path_sub):
-        return send_file(cache_path_sub, mimetype='audio/mpeg')
+        return _serve(cache_path_sub)
 
     # 检查根目录缓存（旧格式兼容）
     if os.path.exists(cache_path_root):
-        return send_file(cache_path_root, mimetype='audio/mpeg')
+        return _serve(cache_path_root)
 
     # 确保子目录存在
     subdir_path = os.path.join(TTS_CACHE_DIR, subdir)
@@ -1264,7 +1269,7 @@ def tts():
         print(f"TTS 生成失败: {e}")
         return 'TTS failed', 500
 
-    return send_file(cache_path_sub, mimetype='audio/mpeg')
+    return _serve(cache_path_sub)
 
 
 if __name__ == '__main__':
