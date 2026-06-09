@@ -21,7 +21,8 @@ DB_CONFIG = dict(host='192.168.71.189', user='root', password='notes123', databa
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_DIR = os.path.join(BASE_DIR, 'cached_tts')
 VOICE_EN = 'en-US-JennyNeural'
-CONCURRENCY = 5
+VOICE_ZH = 'zh-CN-XiaoxiaoNeural'
+CONCURRENCY = 15
 TTS_TIMEOUT = 30
 TEM8_BOOK_IDS = [5, 10, 20]
 LOG_FILE = os.path.join(BASE_DIR, 'precache_tts.log')
@@ -171,6 +172,10 @@ def text_cached(text, voice=VOICE_EN):
     return os.path.exists(_get_cache_path_sync(text, voice))
 
 
+def text_cached_zh(text):
+    return os.path.exists(_get_cache_path_sync(text, VOICE_ZH))
+
+
 async def cache_text(text, voice=VOICE_EN, sem=None):
     path = _get_cache_path_sync(text, voice)
     if os.path.exists(path):
@@ -187,7 +192,7 @@ async def cache_text(text, voice=VOICE_EN, sem=None):
         return False
 
 
-async def cache_word_batch(words, label, progress_stat):
+async def cache_word_batch(words, label, progress_stat, voice=VOICE_EN):
     sem = asyncio.Semaphore(CONCURRENCY)
     total = len(words)
     done = progress_stat[0]
@@ -196,7 +201,7 @@ async def cache_word_batch(words, label, progress_stat):
 
     async def _cached(word):
         async with sem:
-            return await cache_text(word, VOICE_EN)
+            return await cache_text(word, voice)
 
     for i in range(0, total, 100):
         batch = words[i:i+100]
@@ -214,6 +219,60 @@ async def cache_word_batch(words, label, progress_stat):
             new_count, done - new_count - fail_count, fail_count,
             rate, eta / 60))
     progress_stat[0] = done
+
+
+def get_all_meanings():
+    """从 word_json 提取所有中文释义"""
+    conn = mysql.connector.connect(**DB_CONFIG)
+    cur = conn.cursor()
+    cur.execute("SELECT word_json FROM words WHERE word_json IS NOT NULL AND word_json != ''")
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    all_meanings = set()
+    for (wj,) in rows:
+        try:
+            data = json.loads(wj)
+            content = data.get('content', {})
+            word_content = content.get('word', {}).get('content', {})
+            trans = word_content.get('trans', [])
+            for t in trans:
+                cn = (t.get('tranCn') or '').strip()
+                pos = (t.get('pos') or '').strip()
+                if cn:
+                    text = "{} {}".format(pos, cn).strip() if pos else cn
+                    all_meanings.add(text)
+        except:
+            pass
+    return list(all_meanings)
+
+
+def get_example_cn_sentences():
+    """从 word_json 提取中文例句"""
+    conn = mysql.connector.connect(**DB_CONFIG)
+    cur = conn.cursor()
+    sql = """
+        SELECT word_json FROM words
+        WHERE word_json IS NOT NULL AND word_json != ''
+    """
+    cur.execute(sql)
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    sentences = set()
+    for (wj,) in rows:
+        try:
+            data = json.loads(wj)
+            content = data.get('content', {})
+            word_content = content.get('word', {}).get('content', {})
+            sdata = word_content.get('sentence', {}).get('sentences', [])
+            for s in sdata:
+                cn = (s.get('sCn') or '').strip()
+                if cn and len(cn) > 1:
+                    sentences.add(cn)
+        except:
+            pass
+    return list(sentences)
 
 
 # ========== 主流程 ==========
@@ -264,6 +323,18 @@ async def main():
     if all_sent_uncached:
         progress = [0, len(all_sent_uncached), time.time()]
         await cache_word_batch(all_sent_uncached, "all-sent", progress)
+
+    # Step 4: Chinese voice (meanings + example translations)
+    log("[Step 4] Caching Chinese texts with zh voice...")
+
+    meanings = get_all_meanings()
+    cn_sentences = get_example_cn_sentences()
+    cn_texts = list(set(meanings + cn_sentences))
+    cn_uncached = [t for t in cn_texts if not text_cached(t, VOICE_ZH)]
+    log("  Chinese total: {}, uncached: {}".format(len(cn_texts), len(cn_uncached)))
+    if cn_uncached:
+        progress = [0, len(cn_uncached), time.time()]
+        await cache_word_batch(cn_uncached, "zh-texts", progress, voice=VOICE_ZH)
 
     # Done
     elapsed = time.time() - start_time
