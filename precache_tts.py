@@ -222,23 +222,7 @@ async def cache_word_batch(words, label, progress_stat, voice=VOICE_EN):
 
 
 def _extract_zh_from_word_json(rows):
-    """从 word_json 行提取中文释义和例句
-    
-    ⚠️  autoPlay 实际发送的格式是：
-      1. 所有中文含义用 `；` 拼接（服务端 `parse_word_json` 行为）
-      2. 前端再过滤掉词性标记（`\b(adj|adv|v|n|...)\b`）
-      3. 最后 `.trim()`
-    预缓存必须用同样的格式存，否则 cache key 对不上，白跑。
-    """
-    import re
-    
-    # 复制前端的 POS 过滤正则
-    POS_PATTERN = re.compile(
-        r'\b(adj|adv|v\.?|n\.?|adj\.?|adv\.?|conj\.?|prep\.?|'
-        r'pron\.?|int\.?|aux\.?|modal\.?|det\.?)\b',
-        re.IGNORECASE
-    )
-    
+    """从 word_json 行提取中文释义和例句"""
     meanings = set()
     sentences = set()
     for (wj,) in rows:
@@ -247,25 +231,12 @@ def _extract_zh_from_word_json(rows):
             content = data.get('content', {})
             wc = content.get('word', {}).get('content', {})
             trans = wc.get('trans', [])
-            
-            # 1. 收集所有中文含义，和前端 autoPlay 完全一致：
-            #    word.meaning = '；'.join(meanings)
-            raw_meanings = []
             for t in trans:
                 cn = (t.get('tranCn') or '').strip()
                 pos = (t.get('pos') or '').strip()
                 if cn:
-                    raw_meanings.append("{} {}".format(pos, cn).strip() if pos else cn)
-            
-            if raw_meanings:
-                joined = '；'.join(raw_meanings)
-                # 2. 模拟前端 POS 过滤
-                filtered = POS_PATTERN.sub('', joined).strip()
-                # 3. 和前端一样，过滤后可能有多余空格
-                filtered = re.sub(r' +', ' ', filtered)
-                if filtered:
-                    meanings.add(filtered)
-            
+                    text = "{} {}".format(pos, cn).strip() if pos else cn
+                    meanings.add(text)
             sdata = wc.get('sentence', {}).get('sentences', [])
             for s in sdata:
                 scn = (s.get('sCn') or '').strip()
