@@ -358,12 +358,13 @@ def get_word(id):
     if not word_row:
         return jsonify({})
     
-    # 解析JSON并返回
+    # 解析JSON并返回（精简版）
     parsed = parse_word_json(word_row['word_json'])
     if parsed:
         parsed['id'] = word_row['id']
         parsed['textbook_id'] = word_row['textbook_id']
-        parsed['word_json'] = word_row['word_json']
+        if 'raw' in parsed:
+            del parsed['raw']
         return jsonify(parsed)
     return jsonify({})
 
@@ -409,7 +410,9 @@ def get_random_word():
                 if parsed:
                     parsed['id'] = row['id']
                     parsed['textbook_id'] = row['textbook_id']
-                    parsed['word_json'] = row['word_json']
+                    # 精简响应
+                    if 'raw' in parsed:
+                        del parsed['raw']
                 
                 cursor.close()
                 db.close()
@@ -423,37 +426,42 @@ def get_random_word():
             db.close()
             return jsonify({'word': None, 'is_history': True, 'message': '到顶了'})
     
-    # 随机获取（正常或fallback）
+    # 随机获取（正常或fallback）——优化版：只取最少播放的50个单词，避免扫全部5万行
+    import random
+    
     cursor.execute("""
-        SELECT w.id, COALESCE(wpr.play_count, 0) as play_count
+        SELECT w.id
         FROM words w
         LEFT JOIN word_play_records wpr ON w.id = wpr.word_id 
             AND wpr.user_id = %s AND wpr.textbook_id = %s
         WHERE w.textbook_id = %s
+        ORDER BY COALESCE(wpr.play_count, 0), RAND()
+        LIMIT 50
     """, (g.user_id, textbook_id, textbook_id))
     
-    records = cursor.fetchall()
+    candidates = [row['id'] for row in cursor.fetchall()]
     
-    # 找出最小播放次数
-    min_count = min(r['play_count'] for r in records) if records else 0
+    if not candidates:
+        cursor.close()
+        db.close()
+        return jsonify({'word': None, 'message': '该课本没有单词'})
     
-    # 从最小次数的单词中随机选一个
-    min_words = [r for r in records if r['play_count'] == min_count]
-    import random
-    selected = random.choice(min_words)
+    selected_id = random.choice(candidates)
     
     # 获取单词详情
-    cursor.execute("SELECT id, textbook_id, book_name, word, word_json FROM words WHERE id = %s", (selected['id'],))
+    cursor.execute("SELECT id, textbook_id, book_name, word, word_json FROM words WHERE id = %s", (selected_id,))
     word_row = cursor.fetchone()
     
-    # 解析JSON，并返回word_json供前端使用
+    # 解析JSON
     word = None
     if word_row:
         parsed = parse_word_json(word_row['word_json'])
         if parsed:
             parsed['id'] = word_row['id']
             parsed['textbook_id'] = word_row['textbook_id']
-            parsed['word_json'] = word_row['word_json']  # 返回原始JSON供前端解析
+            # 响应精简版：去掉冗余字段以减小传输大小
+            if 'raw' in parsed:
+                del parsed['raw']
             word = parsed
     
     # 更新播放次数
@@ -470,7 +478,7 @@ def get_random_word():
     return jsonify({
         'word': word or {},
         'is_history': False,
-        'min_word_count': len(min_words)
+        'min_word_count': len(candidates)
     })
 
 @app.route('/api/words/history-next', methods=['GET'])
@@ -1093,7 +1101,6 @@ def search_words():
             'id': r['id'],
             'textbook_id': r['textbook_id'],
             'word': r['word'],
-            'word_json': r['word_json'],
             'textbook_title': r['textbook_title'] or r['book_name'],
         }
         if parsed:

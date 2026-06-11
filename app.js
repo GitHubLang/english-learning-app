@@ -452,13 +452,6 @@ function parseWordJson(jsonStr) {
         }
         
         function showWord(word) {
-            // 如果有word_json，用parseWordJson解析
-            if (word.word_json) {
-                const parsed = parseWordJson(word.word_json);
-                if (parsed) {
-                    word = { ...word, ...parsed };
-                }
-            }
             currentWord = word;
             document.getElementById('wordText').textContent = word.word || '';
             document.getElementById('wordPhonetic').innerHTML = word.phonetic ? `<span onclick="playPronunciation('${word.word}', 'us')">/${word.phonetic}/</span>` : '';
@@ -547,14 +540,7 @@ function parseWordJson(jsonStr) {
         function autoPlay() {
             if (!currentWord) return;
             
-            // 解析 word_json（如果有）
             let word = currentWord;
-            if (currentWord.word_json) {
-                const parsed = parseWordJson(currentWord.word_json);
-                if (parsed) {
-                    word = { ...currentWord, ...parsed };
-                }
-            }
             
             // 获取第一个例句（英文 + 中文翻译）
             let firstExample = '';
@@ -1087,14 +1073,7 @@ function parseWordJson(jsonStr) {
             const wordObj = customWord || currentWord;
             if (!wordObj) return;
             
-            // 如果有word_json，用parseWordJson解析
             let word = wordObj;
-            if (wordObj.word_json) {
-                const parsed = parseWordJson(wordObj.word_json);
-                if (parsed) {
-                    word = { ...wordObj, ...parsed };
-                }
-            }
             
             let html = '';
             
@@ -1365,12 +1344,6 @@ function parseWordJson(jsonStr) {
             const quizWord = quizCurrentWord;
             // 如果有word_json，用parseWordJson解析
             let word = quizWord;
-            if (quizWord.word_json) {
-                const parsed = parseWordJson(quizWord.word_json);
-                if (parsed) {
-                    word = { ...quizWord, ...parsed };
-                }
-            }
             
             quizWordText = word.word || '';
             isSyllabified = false;
