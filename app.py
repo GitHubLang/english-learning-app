@@ -10,6 +10,13 @@ import edge_tts
 import os
 import io
 import tempfile
+import time
+from collections import defaultdict
+
+# 简易 IP 限流
+_rate_limit = defaultdict(list)
+RATE_LIMIT_WINDOW = 60  # 60秒窗口
+RATE_LIMIT_MAX = 5     # 窗口内最多5次请求
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'english-learning-secret-key-2024'
@@ -189,6 +196,13 @@ def admin_required(f):
 
 @app.route('/api/auth/register', methods=['POST'])
 def register():
+    # IP 限流检查
+    ip = request.remote_addr or 'unknown'
+    now = time.time()
+    _rate_limit[ip] = [t for t in _rate_limit[ip] if now - t < RATE_LIMIT_WINDOW]
+    if len(_rate_limit[ip]) >= RATE_LIMIT_MAX:
+        return jsonify({'error': '注册太频繁，请稍后再试'}), 429
+    _rate_limit[ip].append(now)
     data = request.get_json()
     username = data.get('username', '').strip()
     password = data.get('password', '')
