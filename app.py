@@ -1226,6 +1226,11 @@ def get_grammar_questions(content_id):
 def index():
     return send_from_directory('.', 'index.html')
 
+@app.route('/api/voice-options')
+def voice_options():
+    """返回可用音色列表"""
+    return jsonify(TTS_VOICE_OPTIONS)
+
 @app.route('/<path:filename>')
 def static_files(filename):
     return send_from_directory('.', filename)
@@ -1339,12 +1344,6 @@ def tts():
         except Exception as e:
             print(f"TTS 生成失败: {e}")
             return 'TTS failed', 500
-
-
-@app.route('/api/voice-options')
-def voice_options():
-    """返回可用音色列表"""
-    return jsonify(TTS_VOICE_OPTIONS)
 
 
 if __name__ == '__main__':
