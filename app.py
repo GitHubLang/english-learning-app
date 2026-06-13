@@ -1138,6 +1138,7 @@ def search_words():
 
 
 @app.route('/api/grammar', methods=['GET'])
+@token_required
 def get_grammar_list():
     db = get_db()
     cursor = db.cursor(dictionary=True)
