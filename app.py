@@ -6,6 +6,8 @@ import hashlib
 import jwt
 import time
 import asyncio
+# Windows 上必须用 SelectorEventLoop 才能正常导入 edge_tts
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 import edge_tts
 import os
 import io
@@ -13,6 +15,13 @@ import tempfile
 import time
 from urllib.request import urlopen
 from collections import defaultdict
+from threading import Lock, Semaphore
+
+# TTS 并发控制：最多同时 3 个 TTS 请求调用微软 API
+_tts_semaphore = Semaphore(3)
+# TTS 内存缓存：避免同一文本重复请求
+_tts_memory_cache = {}
+_TTS_CACHE_MAX = 200
 
 # 简易 IP 限流
 _rate_limit = defaultdict(list)
@@ -1354,15 +1363,18 @@ def tts():
         subdir_path = os.path.join(TTS_CACHE_DIR, subdir)
         os.makedirs(subdir_path, exist_ok=True)
 
-        async def _gen_cached():
-            communicate = edge_tts.Communicate(text, voice)
-            await communicate.save(cache_path_sub)
+        def _gen_and_save():
+            async def _gen_cached():
+                communicate = edge_tts.Communicate(text, voice)
+                await communicate.save(cache_path_sub)
+            try:
+                asyncio.run(_gen_cached())
+            except Exception as e:
+                print(f"TTS 生成失败: {e}")
+                raise
 
-        try:
-            asyncio.run(_gen_cached())
-        except Exception as e:
-            print(f"TTS 生成失败: {e}")
-            return 'TTS failed', 500
+        with _tts_semaphore:
+            _gen_and_save()
 
         return _serve(cache_path_sub)
     else:
@@ -1383,24 +1395,51 @@ def tts():
                 except Exception:
                     pass
 
-        try:
-            audio_data = asyncio.run(_gen_once())
-            resp = Response(audio_data, mimetype='audio/mpeg')
-            resp.headers['Content-Length'] = len(audio_data)
+        # —— 非缓存模式 ——
+        # 先查内存缓存
+        mem_key = f"{text}:{voice}"
+        if mem_key in _tts_memory_cache:
+            data = _tts_memory_cache[mem_key]
+            resp = Response(data, mimetype='audio/mpeg')
+            resp.headers['Content-Length'] = len(data)
             resp.headers['Accept-Ranges'] = 'bytes'
             return resp
-        except Exception as e:
-            print(f"TTS 生成失败: {e}")
-            # 重试一次
-            try:
-                audio_data = asyncio.run(_gen_once())
-                resp = Response(audio_data, mimetype='audio/mpeg')
-                resp.headers['Content-Length'] = len(audio_data)
-                resp.headers['Accept-Ranges'] = 'bytes'
-                return resp
-            except Exception as e2:
-                print(f"TTS 重试也失败: {e2}")
-                return 'TTS failed', 500
+        
+        # 限制并发数，避免微软 API 超载
+        with _tts_semaphore:
+            # 二次检查（等待锁的时候可能已经有结果了）
+            if mem_key in _tts_memory_cache:
+                data = _tts_memory_cache[mem_key]
+            else:
+                async def _gen_once():
+                    tmp = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False)
+                    tmp_path = tmp.name
+                    tmp.close()
+                    try:
+                        communicate = edge_tts.Communicate(text, voice)
+                        await communicate.save(tmp_path)
+                        with open(tmp_path, 'rb') as f:
+                            return f.read()
+                    finally:
+                        try:
+                            os.unlink(tmp_path)
+                        except Exception:
+                            pass
+                
+                try:
+                    audio_data = asyncio.run(_gen_once())
+                    # 存入内存缓存
+                    if len(_tts_memory_cache) >= _TTS_CACHE_MAX:
+                        _tts_memory_cache.clear()
+                    _tts_memory_cache[mem_key] = audio_data
+                except Exception as e:
+                    print(f"TTS 生成失败: {e}")
+                    return 'TTS failed', 500
+        
+        resp = Response(audio_data, mimetype='audio/mpeg')
+        resp.headers['Content-Length'] = len(audio_data)
+        resp.headers['Accept-Ranges'] = 'bytes'
+        return resp
 
 
 if __name__ == '__main__':
