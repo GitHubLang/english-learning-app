@@ -2,3 +2,5 @@
 cached_tts/
 __pycache__/
 *.pyc
+
+grammar_images/
