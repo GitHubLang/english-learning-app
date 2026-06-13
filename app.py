@@ -42,7 +42,18 @@ db_pool = pooling.MySQLConnectionPool(
 )
 
 def get_db():
-    return db_pool.get_connection()
+    conn = db_pool.get_connection()
+    try:
+        conn.ping(reconnect=True, attempts=2, delay=0.5)
+    except Exception:
+        # 连接已断开，强制拿新连接
+        try:
+            conn.close()
+        except Exception:
+            pass
+        conn = db_pool.get_connection()
+        conn.ping(reconnect=True, attempts=2, delay=0.5)
+    return conn
 
 def parse_word_json(word_json_str):
     """解析单词JSON，返回结构化数据"""
