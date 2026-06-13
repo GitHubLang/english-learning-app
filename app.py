@@ -1249,12 +1249,14 @@ def voice_options():
 
 @app.route('/api/image')
 def proxy_image():
-    """代理 HTTP 图片到 HTTPS（解决混合内容问题）"""
+    """代理图片到 HTTPS（解决混合内容问题）"""
     url = request.args.get('url', '')
     if not url:
         return '', 400
     try:
-        resp = urlopen(url, timeout=5)
+        # 有道 CDN 不支持 HTTPS，强制转 HTTP 再 fetch
+        http_url = url.replace('https://', 'http://')
+        resp = urlopen(http_url, timeout=5)
         data = resp.read()
         return Response(data, mimetype=resp.headers.get('Content-Type', 'image/png'))
     except Exception as e:
