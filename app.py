@@ -1385,10 +1385,22 @@ def tts():
 
         try:
             audio_data = asyncio.run(_gen_once())
-            return Response(audio_data, mimetype='audio/mpeg')
+            resp = Response(audio_data, mimetype='audio/mpeg')
+            resp.headers['Content-Length'] = len(audio_data)
+            resp.headers['Accept-Ranges'] = 'bytes'
+            return resp
         except Exception as e:
             print(f"TTS 生成失败: {e}")
-            return 'TTS failed', 500
+            # 重试一次
+            try:
+                audio_data = asyncio.run(_gen_once())
+                resp = Response(audio_data, mimetype='audio/mpeg')
+                resp.headers['Content-Length'] = len(audio_data)
+                resp.headers['Accept-Ranges'] = 'bytes'
+                return resp
+            except Exception as e2:
+                print(f"TTS 重试也失败: {e2}")
+                return 'TTS failed', 500
 
 
 if __name__ == '__main__':
