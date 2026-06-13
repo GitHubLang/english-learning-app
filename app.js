@@ -336,7 +336,7 @@ function parseWordJson(jsonStr) {
         function switchTheme(theme) {
             localStorage.setItem('theme', theme);
             applyTheme(theme);
-            document.querySelectorAll('.theme-btn').forEach(btn => {
+            document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.theme === theme);
             });
         }
