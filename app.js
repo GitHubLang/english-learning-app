@@ -158,6 +158,7 @@ function parseWordJson(jsonStr) {
                 token = data.token;
                 user = data.user;
                 localStorage.setItem('english_token', token);
+                loadUserVoicePrefs();
                 showApp();
             } catch (e) {
                 showToast('网络错误');
@@ -226,7 +227,106 @@ function parseWordJson(jsonStr) {
             if (user) {
                 document.getElementById('settingsUsername').textContent = user.username;
             }
+            // 加载音色选项
+            loadVoiceOptions();
+            loadUserVoiceSettings();
             modal.classList.add('show');
+        }
+        
+        // 音色选项
+        let voiceCache = null;
+        
+        async function loadVoiceOptions() {
+            if (voiceCache) return;
+            try {
+                const res = await fetch('/api/voice-options');
+                voiceCache = await res.json();
+                // 填充英文音色下拉
+                const enSelect = document.getElementById('voiceEn');
+                enSelect.innerHTML = '';
+                voiceCache.en.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.id;
+                    opt.textContent = v.name;
+                    enSelect.appendChild(opt);
+                });
+                // 填充中文音色下拉
+                const zhSelect = document.getElementById('voiceZh');
+                zhSelect.innerHTML = '';
+                voiceCache.zh.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v.id;
+                    opt.textContent = v.name;
+                    zhSelect.appendChild(opt);
+                });
+            } catch (e) {
+                console.error('加载音色失败:', e);
+            }
+        }
+        
+        async function loadUserVoiceSettings() {
+            try {
+                const res = await fetch('/api/user/settings', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    const settings = await res.json();
+                    if (settings.voiceEn) {
+                        document.getElementById('voiceEn').value = settings.voiceEn;
+                    }
+                    if (settings.voiceZh) {
+                        document.getElementById('voiceZh').value = settings.voiceZh;
+                    }
+                }
+            } catch (e) {
+                console.error('加载音色设置失败:', e);
+            }
+        }
+        
+        async function saveVoiceSettings() {
+            const voiceEn = document.getElementById('voiceEn').value;
+            const voiceZh = document.getElementById('voiceZh').value;
+            try {
+                // 先获取当前完整设置
+                const res = await fetch('/api/user/settings', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    const settings = await res.json();
+                    settings.voiceEn = voiceEn;
+                    settings.voiceZh = voiceZh;
+                    // 保存
+                    await fetch('/api/user/settings', {
+                        method: 'PUT',
+                        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                        body: JSON.stringify(settings)
+                    });
+                    // 更新本地缓存
+                    userVoiceEn = voiceEn;
+                    userVoiceZh = voiceZh;
+                    showToast('音色已保存');
+                }
+            } catch (e) {
+                console.error('保存音色失败:', e);
+            }
+        }
+        
+        // 当前用户选择的音色（本地缓存）
+        let userVoiceEn = '';
+        let userVoiceZh = '';
+        
+        // 登录成功后加载用户音色设置
+        async function loadUserVoicePrefs() {
+            try {
+                const res = await fetch('/api/user/settings', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    const settings = await res.json();
+                    userVoiceEn = settings.voiceEn || '';
+                    userVoiceZh = settings.voiceZh || '';
+                }
+            } catch (e) {}
         }
         
         function closeSettings() {
@@ -501,7 +601,8 @@ function parseWordJson(jsonStr) {
                 // 过滤词性标记
                 const cleaned = text.replace(/\b(adj|adv|v\.?|n\.?|adj\.?|adv\.?|conj\.?|prep\.?|pron\.?|int\.?|aux\.?|modal\.?|det\.?)\b/gi, '').trim();
                 const finalText = cleaned || text;
-                const audio = new Audio(`/api/tts?text=${encodeURIComponent(finalText)}&lang=${lang || 'en'}`);
+                const voiceParam = lang === 'zh' ? userVoiceZh : userVoiceEn;
+                const audio = new Audio(`/api/tts?text=${encodeURIComponent(finalText)}&lang=${lang || 'en'}&voice=${voiceParam}`);
                 audio.volume = 1.0;
                 ttsAudio = audio;
                 audio.onended = () => {
@@ -584,7 +685,8 @@ function parseWordJson(jsonStr) {
             const audios = items.map(item => {
                 const cleaned = item.text.replace(/\b(adj|adv|v\.?|n\.?|adj\.?|adv\.?|conj\.?|prep\.?|pron\.?|int\.?|aux\.?|modal\.?|det\.?)\b/gi, '').trim();
                 const finalText = cleaned || item.text;
-                const audio = new Audio(`/api/tts?text=${encodeURIComponent(finalText)}&lang=${item.lang}`);
+                const voiceParam = item.lang === 'zh' ? userVoiceZh : userVoiceEn;
+                const audio = new Audio(`/api/tts?text=${encodeURIComponent(finalText)}&lang=${item.lang}&voice=${voiceParam}`);
                 audio.volume = 1.0;
                 audio.preload = 'auto';
                 return audio;

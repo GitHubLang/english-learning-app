@@ -8,6 +8,8 @@ import time
 import asyncio
 import edge_tts
 import os
+import io
+import tempfile
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'english-learning-secret-key-2024'
@@ -288,6 +290,19 @@ def update_user_settings():
     cursor.close()
     db.close()
     return jsonify({'success': True})
+
+
+@app.route('/api/config', methods=['GET'])
+@token_required
+def get_app_config():
+    """获取全局配置（如 TTS 缓存开关）"""
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT config_key, config_value FROM app_config")
+    config = {row['config_key']: row['config_value'] for row in cursor.fetchall()}
+    cursor.close()
+    conn.close()
+    return jsonify(config)
 
 # ============ 单词课本 ============
 
@@ -1224,52 +1239,112 @@ TTS_VOICES = {
     'zh': 'zh-CN-XiaoxiaoNeural',
 }
 
+# 常用音色列表（供前端选择）
+TTS_VOICE_OPTIONS = {
+    'en': [
+        {'id': 'en-US-JennyNeural', 'name': 'Jenny（美式女声）'},
+        {'id': 'en-US-AriaNeural', 'name': 'Aria（美式女声）'},
+        {'id': 'en-US-GuyNeural', 'name': 'Guy（美式男声）'},
+        {'id': 'en-US-EricNeural', 'name': 'Eric（美式男声）'},
+        {'id': 'en-GB-SoniaNeural', 'name': 'Sonia（英式女声）'},
+        {'id': 'en-GB-RyanNeural', 'name': 'Ryan（英式男声）'},
+    ],
+    'zh': [
+        {'id': 'zh-CN-XiaoxiaoNeural', 'name': '晓晓（女声）'},
+        {'id': 'zh-CN-YunxiNeural', 'name': '云希（男声）'},
+        {'id': 'zh-CN-YunyangNeural', 'name': '云扬（男声）'},
+        {'id': 'zh-CN-XiaoyiNeural', 'name': '晓伊（女声）'},
+        {'id': 'zh-CN-YunjianNeural', 'name': '云健（男声）'},
+    ]
+}
+
+
+def _get_tts_cache_enabled():
+    """查询数据库是否启用 TTS 缓存"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT config_value FROM app_config WHERE config_key = 'tts_cache_enabled'")
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return row and row[0] == 'Y'
+    except Exception:
+        return True  # 默认开启
+
+
 @app.route('/api/tts')
 def tts():
     text = request.args.get('text', '')
     lang = request.args.get('lang', 'en')
+    custom_voice = request.args.get('voice', '')
     if not text:
         return 'Missing text', 400
 
-    voice = TTS_VOICES.get(lang, 'en-US-JennyNeural')
-
-    # 生成缓存 key（文本+语音）
-    cache_key = hashlib.md5(f"{text}:{voice}".encode()).hexdigest()
-
-    # 缓存路径：优先子目录（哈希前2字符），其次根目录（旧格式兼容）
-    subdir = cache_key[:2]
-    cache_path_sub = os.path.join(TTS_CACHE_DIR, subdir, f"{cache_key}.mp3")
-    cache_path_root = os.path.join(TTS_CACHE_DIR, f"{cache_key}.mp3")
+    voice = custom_voice if custom_voice else TTS_VOICES.get(lang, 'en-US-JennyNeural')
+    cache_enabled = _get_tts_cache_enabled()
 
     def _serve(path):
         resp = send_file(path, mimetype='audio/mpeg')
         resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
         return resp
 
-    # 检查子目录缓存
-    if os.path.exists(cache_path_sub):
+    if cache_enabled:
+        # —— 缓存模式 ——
+        cache_key = hashlib.md5(f"{text}:{voice}".encode()).hexdigest()
+        subdir = cache_key[:2]
+        cache_path_sub = os.path.join(TTS_CACHE_DIR, subdir, f"{cache_key}.mp3")
+        cache_path_root = os.path.join(TTS_CACHE_DIR, f"{cache_key}.mp3")
+
+        if os.path.exists(cache_path_sub):
+            return _serve(cache_path_sub)
+        if os.path.exists(cache_path_root):
+            return _serve(cache_path_root)
+
+        subdir_path = os.path.join(TTS_CACHE_DIR, subdir)
+        os.makedirs(subdir_path, exist_ok=True)
+
+        async def _gen_cached():
+            communicate = edge_tts.Communicate(text, voice)
+            await communicate.save(cache_path_sub)
+
+        try:
+            asyncio.run(_gen_cached())
+        except Exception as e:
+            print(f"TTS 生成失败: {e}")
+            return 'TTS failed', 500
+
         return _serve(cache_path_sub)
+    else:
+        # —— 非缓存模式：生成到临时文件，读入内存后删除 ——
+        async def _gen_once():
+            tmp = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False)
+            tmp_path = tmp.name
+            tmp.close()
+            try:
+                communicate = edge_tts.Communicate(text, voice)
+                await communicate.save(tmp_path)
+                with open(tmp_path, 'rb') as f:
+                    data = f.read()
+                return data
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except Exception:
+                    pass
 
-    # 检查根目录缓存（旧格式兼容）
-    if os.path.exists(cache_path_root):
-        return _serve(cache_path_root)
+        try:
+            audio_data = asyncio.run(_gen_once())
+            return Response(audio_data, mimetype='audio/mpeg')
+        except Exception as e:
+            print(f"TTS 生成失败: {e}")
+            return 'TTS failed', 500
 
-    # 确保子目录存在
-    subdir_path = os.path.join(TTS_CACHE_DIR, subdir)
-    os.makedirs(subdir_path, exist_ok=True)
 
-    # 调用 edge-tts 生成，保存到子目录
-    async def _gen():
-        communicate = edge_tts.Communicate(text, voice)
-        await communicate.save(cache_path_sub)
-
-    try:
-        asyncio.run(_gen())
-    except Exception as e:
-        print(f"TTS 生成失败: {e}")
-        return 'TTS failed', 500
-
-    return _serve(cache_path_sub)
+@app.route('/api/voice-options')
+def voice_options():
+    """返回可用音色列表"""
+    return jsonify(TTS_VOICE_OPTIONS)
 
 
 if __name__ == '__main__':

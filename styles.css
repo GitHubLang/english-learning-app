@@ -1180,6 +1180,43 @@
             color: var(--text);
         }
         
+        /* 音色设置 */
+        .voice-setting {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .voice-setting:last-child {
+            margin-bottom: 0;
+        }
+        
+        .voice-label {
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+        
+        .voice-select {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 0.85rem;
+            max-width: 180px;
+            cursor: pointer;
+        }
+        
+        .voice-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
         /* 主题选项 - 横向小条样式 */
         .theme-options {
             display: flex;
