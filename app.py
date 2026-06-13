@@ -87,8 +87,8 @@ def parse_word_json(word_json_str):
         us_speech = word_content.get('usspeech', '')
         uk_speech = word_content.get('ukspeech', '')
         
-        # 提取图片
-        picture = word_content.get('picture', '')
+        # 提取图片（强制转 HTTPS）
+        picture = word_content.get('picture', '').replace('http://', 'https://')
         
         # 提取记忆法
         rem_method = ''
