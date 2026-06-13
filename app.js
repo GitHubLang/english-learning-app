@@ -221,7 +221,7 @@ function parseWordJson(jsonStr) {
         function openSettings() {
             const modal = document.getElementById('settingsModal');
             const theme = localStorage.getItem('theme') || 'light';
-            document.querySelectorAll('.theme-btn').forEach(btn => {
+            document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.theme === theme);
             });
             if (user) {

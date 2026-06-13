@@ -1239,11 +1239,22 @@
             transition: all 0.2s;
             color: var(--text-secondary);
             font-size: 0.85rem;
-            border-right: 1px solid var(--border);
+            position: relative;
         }
         
-        .theme-toggle-btn:last-child {
-            border-right: none;
+        .theme-toggle-btn + .theme-toggle-btn::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 20%;
+            height: 60%;
+            width: 1px;
+            background: var(--border);
+        }
+        
+        .theme-toggle-btn.active + .theme-toggle-btn::before,
+        .theme-toggle-btn.active::before {
+            display: none;
         }
         
         .theme-toggle-btn svg {
