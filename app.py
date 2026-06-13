@@ -1268,6 +1268,16 @@ def proxy_image():
 
 @app.route('/<path:filename>')
 def static_files(filename):
+    # 语法图片不存在时静默处理
+    if filename.startswith('grammar_images/'):
+        try:
+            return send_from_directory('.', filename)
+        except:
+            # 返回 1x1 透明像素避免页面报错
+            return Response(
+                b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0bIDATx\x9cc\x62\x08\x05\x00\x00\x90\x00\x01\x12\x91\xd5\xb2\x00\x00\x00\x00IEND\xaeB`\x82',
+                mimetype='image/png'
+            )
     return send_from_directory('.', filename)
 
 # TTS 缓存目录
