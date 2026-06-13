@@ -440,7 +440,9 @@ function parseWordJson(jsonStr) {
         
         async function initApp() {
             try {
-                const res = await fetch(`${API}/textbooks`);
+                const res = await fetch(`${API}/textbooks`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
                 textbooks = await res.json();
                 const select = document.getElementById('textbookSelect');
                 select.innerHTML = '<option value="">选择课本</option>' + 
