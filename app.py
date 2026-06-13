@@ -6,8 +6,10 @@ import hashlib
 import jwt
 import time
 import asyncio
+import sys
 # Windows 上必须用 SelectorEventLoop 才能正常导入 edge_tts
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 import edge_tts
 import os
 import io
