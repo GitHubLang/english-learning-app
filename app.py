@@ -322,6 +322,7 @@ def get_app_config():
 # ============ 单词课本 ============
 
 @app.route('/api/textbooks', methods=['GET'])
+@token_required
 def get_textbooks():
     db = get_db()
     cursor = db.cursor(dictionary=True)
@@ -338,6 +339,7 @@ def get_textbooks():
     return jsonify(textbooks)
 
 @app.route('/api/textbooks/<int:id>', methods=['GET'])
+@token_required
 def get_textbook(id):
     db = get_db()
     cursor = db.cursor(dictionary=True)
