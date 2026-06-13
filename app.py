@@ -11,6 +11,7 @@ import os
 import io
 import tempfile
 import time
+from urllib.request import urlopen
 from collections import defaultdict
 
 # 简易 IP 限流
@@ -1244,6 +1245,21 @@ def index():
 def voice_options():
     """返回可用音色列表"""
     return jsonify(TTS_VOICE_OPTIONS)
+
+
+@app.route('/api/image')
+def proxy_image():
+    """代理 HTTP 图片到 HTTPS（解决混合内容问题）"""
+    url = request.args.get('url', '')
+    if not url:
+        return '', 400
+    try:
+        resp = urlopen(url, timeout=5)
+        data = resp.read()
+        return Response(data, mimetype=resp.headers.get('Content-Type', 'image/png'))
+    except Exception as e:
+        print(f"图片代理失败: {e}")
+        return '', 404
 
 @app.route('/<path:filename>')
 def static_files(filename):

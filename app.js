@@ -1213,7 +1213,7 @@ function parseWordJson(jsonStr) {
             if (word.picture) {
                 html += `<div class="word-detail-section">
                     <div class="word-detail-label">图片</div>
-                    <div class="word-detail-picture"><img src="${word.picture}" alt="单词图片" onerror="this.style.display='none'"></div>
+                    <div class="word-detail-picture"><img src="/api/image?url=${encodeURIComponent(word.picture)}" alt="单词图片" onerror="this.style.display='none'"></div>
                 </div>`;
             }
             
