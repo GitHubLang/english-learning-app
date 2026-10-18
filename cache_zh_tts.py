@@ -13,7 +13,7 @@ import time
 import sys
 import signal
 
-DB_CONFIG = dict(host='192.168.71.189', user='root', password='notes123', database='english_db')
+DB_CONFIG = dict(host='192.168.2.189', user='root', password='notes123', database='english_db')
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_DIR = os.path.join(BASE_DIR, 'cached_tts')
 VOICE_ZH = 'zh-CN-XiaoxiaoNeural'

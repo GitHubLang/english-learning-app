@@ -2,7 +2,7 @@
 快速查看课本信息和TEM-8教材
 """
 import mysql.connector
-DB = dict(host='192.168.71.189', user='root', password='notes123', database='english_db')
+DB = dict(host='192.168.2.189', user='root', password='notes123', database='english_db')
 conn = mysql.connector.connect(**DB)
 cur = conn.cursor(dictionary=True)
 

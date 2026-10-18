@@ -4,7 +4,7 @@
 import mysql.connector
 import hashlib, os, json, re
 
-DB = dict(host='192.168.71.189', user='root', password='notes123', database='english_db')
+DB = dict(host='192.168.2.189', user='root', password='notes123', database='english_db')
 CACHE_DIR = r'D:\myProject\english-learning-app\cached_tts'
 VOICE_EN = 'en-US-JennyNeural'
 

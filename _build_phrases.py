@@ -9,7 +9,7 @@ import random
 import sys
 
 DB_CONFIG = {
-    'host': '192.168.71.189',
+    'host': '192.168.2.189',
     'user': 'root',
     'password': 'notes123',
     'database': 'english_db'
